@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Simulador · {{ cruzamento.nome }}{% endblock %}
+{% block head %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" defer></script>
+{% endblock %}
+{% block content %}
+<section class="page-heading simulator-heading">
+    <div><p class="eyebrow">Simulação visual</p><h1>{{ cruzamento.nome }}</h1><p class="muted">Compare o cenário atual com alternativas de organização viária.</p></div>
+    <a class="button button-quiet" href="{{ url_for('cruzamentos.listar') }}">← Voltar aos cruzamentos</a>
+</section>
+
+<section class="simulator-toolbar panel">
+    <div class="simulator-control">
+        <label for="green-time">Verde · Leste–Oeste <output id="green-time-output">{{ cruzamento.tempo_verde }}</output> s</label>
+        <input id="green-time" type="range" min="5" max="120" step="5" value="{{ cruzamento.tempo_verde }}">
+    </div>
+    <div class="simulator-control">
+        <label for="red-time">Verde · Norte–Sul <output id="red-time-output">{{ cruzamento.tempo_vermelho }}</output> s</label>
+        <input id="red-time" type="range" min="5" max="120" step="5" value="{{ cruzamento.tempo_vermelho }}">
+    </div>
+    <label class="switch-control"><input id="green-wave" type="checkbox" {% if cruzamento.onda_verde %}checked{% endif %}><span class="switch-track"></span><span>Sincronizar onda verde</span></label>
+    <button class="button button-quiet" id="toggle-intersection" type="button" aria-pressed="{{ 'true' if cruzamento.tipo_intersecao == 'Rotatoria' else 'false' }}">{{ 'Trocar para semáforo' if cruzamento.tipo_intersecao == 'Rotatoria' else 'Trocar para rotatória' }}</button>
+    <div class="signal-indicator" aria-live="polite"><span class="signal-indicator-light" id="signal-indicator-light"></span><span id="signal-state">Leste–Oeste liberado · Norte–Sul aguardando</span></div>
+</section>
+<p class="form-note simulator-timing-note">Os tempos são segundos simulados. O ciclo é acelerado em 3× para facilitar a observação; amarelo e intervalo de segurança entre fluxos são adicionados automaticamente.</p>
+
+<section class="comparison-grid" aria-label="Comparação de cenários da simulação">
+    <article class="scene-card">
+        <div class="scene-heading"><div><span class="scene-tag">ANTES</span><h2>Cruzamento atual</h2></div><span class="scene-description">Fluxos opostos em fases alternadas</span></div>
+        <div class="scene-canvas" id="scene-before" aria-label="Visualização 3D do cruzamento atual"></div>
+    </article>
+    <article class="scene-card scene-card-after">
+        <div class="scene-heading"><div><span class="scene-tag scene-tag-green">DEPOIS</span><h2 id="after-scene-title">{{ 'Rotatória proposta' if cruzamento.tipo_intersecao == 'Rotatoria' else 'Cenário ajustado' }}</h2></div><span class="scene-description">Cede passagem a quem já circula</span></div>
+        <div class="scene-canvas" id="scene-after" aria-label="Visualização 3D do cenário proposto"></div>
+    </article>
+</section>
+
+<section class="simulator-bottom">
+    <div class="hud-grid" aria-live="polite">
+        <article class="hud-card"><span>Tempo de espera médio</span><strong><span id="hud-wait">{{ "%.1f"|format(cruzamento.tempo_espera_medio) }}</span><small> s</small></strong></article>
+        <article class="hud-card"><span>Congestionamento</span><strong id="hud-congestion" class="badge badge-{{ cruzamento.congestionamento|lower }}">{{ cruzamento.congestionamento }}</strong></article>
+        <article class="hud-card"><span>Veículos por minuto</span><strong><span id="hud-vehicles">{{ cruzamento.veiculos_minuto }}</span></strong></article>
+    </div>
+    <div class="simulator-actions"><p class="form-note" id="simulation-status" role="status">Representação educativa: motoristas na rotatória têm preferência; nas aproximações, os veículos reduzem e aguardam uma brecha segura.</p><button class="button" id="save-simulation" type="button">Salvar resultados</button></div>
+</section>
+<script>
+    window.SIMULATION_CONFIG = {
+        id: {{ cruzamento.id|tojson }},
+        nome: {{ cruzamento.nome|tojson }},
+        tipo: {{ cruzamento.tipo_intersecao|tojson }},
+        tempoVerde: {{ cruzamento.tempo_verde|tojson }},
+        tempoVermelho: {{ cruzamento.tempo_vermelho|tojson }},
+        ondaVerde: {{ cruzamento.onda_verde|tojson }},
+        espera: {{ cruzamento.tempo_espera_medio|tojson }},
+        congestionamento: {{ cruzamento.congestionamento|tojson }},
+        veiculosMinuto: {{ cruzamento.veiculos_minuto|tojson }},
+        salvarUrl: {{ url_for('cruzamentos.salvar_simulacao', cruzamento_id=cruzamento.id)|tojson }},
+        csrfToken: {{ csrf_token()|tojson }}
+    };
+</script>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/simulador3d.js') }}" defer></script>{% endblock %}

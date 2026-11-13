@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Cruzamentos · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">Mobilidade urbana</p><h1>Cruzamentos</h1><p class="muted">Consulte os dados e explore diferentes cenários de circulação.</p></div>
+    {% if current_user.cargo in ['Administrador', 'Engenheiro'] %}<a class="button" href="{{ url_for('cruzamentos.novo') }}"><span aria-hidden="true">＋</span> Novo cruzamento</a>{% endif %}
+</section>
+<section class="panel">
+    <form method="get" class="filter-form">
+        <div class="filter-search"><label for="nome">Nome</label><input id="nome" name="nome" type="search" placeholder="Buscar cruzamento" value="{{ filtros.nome }}"></div>
+        <div><label for="tipo_intersecao">Interseção</label><select id="tipo_intersecao" name="tipo_intersecao"><option value="">Todos os tipos</option>{% for tipo in tipos %}<option value="{{ tipo }}" {% if filtros.tipo_intersecao == tipo %}selected{% endif %}>{{ tipo }}</option>{% endfor %}</select></div>
+        <div><label for="congestionamento">Congestionamento</label><select id="congestionamento" name="congestionamento"><option value="">Todos os níveis</option>{% for nivel in niveis %}<option value="{{ nivel }}" {% if filtros.congestionamento == nivel %}selected{% endif %}>{{ nivel }}</option>{% endfor %}</select></div>
+        <div class="filter-actions"><button class="button button-small" type="submit">Filtrar</button><a class="button button-quiet button-small" href="{{ url_for('cruzamentos.listar') }}">Limpar</a></div>
+    </form>
+    {% if cruzamentos %}
+        <div class="table-wrap"><table>
+            <thead><tr><th>Cruzamento</th><th>Interseção</th><th>Espera média</th><th>Congestionamento</th><th>Veículos/min</th><th>Onda verde</th><th>Ações</th></tr></thead>
+            <tbody>{% for cruzamento in cruzamentos %}
+                <tr>
+                    <td><strong>{{ cruzamento.nome }}</strong><small class="table-subtitle">Verde {{ cruzamento.tempo_verde }}s · Vermelho {{ cruzamento.tempo_vermelho }}s</small></td>
+                    <td>{{ cruzamento.tipo_intersecao }}</td>
+                    <td>{{ "%.1f"|format(cruzamento.tempo_espera_medio) }} s</td>
+                    <td><span class="badge badge-{{ cruzamento.congestionamento|lower }}">{{ cruzamento.congestionamento }}</span></td>
+                    <td>{{ cruzamento.veiculos_minuto }}</td><td>{{ 'Ativada' if cruzamento.onda_verde else 'Desativada' }}</td>
+                    <td><div class="table-actions">
+                        <a class="button button-small" href="{{ url_for('cruzamentos.simulador', cruzamento_id=cruzamento.id) }}">Simular</a>
+                        {% if current_user.cargo in ['Administrador', 'Engenheiro'] %}
+                            <a class="button button-quiet button-small" href="{{ url_for('cruzamentos.editar', cruzamento_id=cruzamento.id) }}">Editar</a>
+                            <form method="post" action="{{ url_for('cruzamentos.excluir', cruzamento_id=cruzamento.id) }}" onsubmit="return confirm('Excluir o cruzamento {{ cruzamento.nome|e }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-danger button-small" type="submit">Excluir</button>
+                            </form>
+                        {% endif %}
+                    </div></td>
+                </tr>
+            {% endfor %}</tbody>
+        </table></div>
+    {% else %}
+        <div class="empty-state"><span class="empty-icon">⌘</span><h3>Nenhum cruzamento encontrado</h3><p>Altere os filtros ou cadastre um cruzamento para começar.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

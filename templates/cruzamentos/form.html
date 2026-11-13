@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% set editando = cruzamento is not none %}
+{% set onda_verde_selecionada = false %}
+{% if request.method == 'POST' %}
+    {% set onda_verde_selecionada = request.form.get('onda_verde') %}
+{% elif editando %}
+    {% set onda_verde_selecionada = cruzamento.onda_verde %}
+{% endif %}
+{% block title %}{{ 'Editar cruzamento' if editando else 'Novo cruzamento' }} · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">Mobilidade urbana</p><h1>{{ 'Editar cruzamento' if editando else 'Novo cruzamento' }}</h1><p class="muted">Informe parâmetros para acompanhar a simulação deste local.</p></div>
+    <a class="button button-quiet" href="{{ url_for('cruzamentos.listar') }}">← Voltar à lista</a>
+</section>
+<section class="panel form-panel">
+    <form method="post" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-field form-span"><label for="nome">Nome do cruzamento <span class="required">*</span></label><input id="nome" name="nome" type="text" maxlength="120" required value="{{ request.form.get('nome', cruzamento.nome if editando else '') }}"></div>
+        <div class="form-field"><label for="tipo_intersecao">Tipo de interseção <span class="required">*</span></label><select id="tipo_intersecao" name="tipo_intersecao" required>{% for tipo in tipos %}<option value="{{ tipo }}" {% if request.form.get('tipo_intersecao', cruzamento.tipo_intersecao if editando else 'Semaforo') == tipo %}selected{% endif %}>{{ 'Semáforo' if tipo == 'Semaforo' else 'Rotatória' }}</option>{% endfor %}</select></div>
+        <div class="form-field"><label for="congestionamento">Congestionamento <span class="required">*</span></label><select id="congestionamento" name="congestionamento" required>{% for nivel in niveis %}<option value="{{ nivel }}" {% if request.form.get('congestionamento', cruzamento.congestionamento if editando else 'MEDIO') == nivel %}selected{% endif %}>{{ nivel }}</option>{% endfor %}</select></div>
+        <div class="form-field"><label for="tempo_verde">Tempo verde (segundos)</label><input id="tempo_verde" name="tempo_verde" type="number" min="0" max="3600" required value="{{ request.form.get('tempo_verde', cruzamento.tempo_verde if editando else 30) }}"></div>
+        <div class="form-field"><label for="tempo_vermelho">Tempo vermelho (segundos)</label><input id="tempo_vermelho" name="tempo_vermelho" type="number" min="0" max="3600" required value="{{ request.form.get('tempo_vermelho', cruzamento.tempo_vermelho if editando else 30) }}"></div>
+        <div class="form-field"><label for="tempo_espera_medio">Espera média (segundos)</label><input id="tempo_espera_medio" name="tempo_espera_medio" type="number" min="0" max="86400" step="0.1" required value="{{ request.form.get('tempo_espera_medio', cruzamento.tempo_espera_medio if editando else 0) }}"></div>
+        <div class="form-field"><label for="veiculos_minuto">Veículos por minuto</label><input id="veiculos_minuto" name="veiculos_minuto" type="number" min="0" max="100000" required value="{{ request.form.get('veiculos_minuto', cruzamento.veiculos_minuto if editando else 0) }}"></div>
+        <label class="check-row form-span"><input type="checkbox" name="onda_verde" {% if onda_verde_selecionada %}checked{% endif %}> Sincronizar onda verde</label>
+        <p class="form-note form-span">Os valores devem representar medições locais ou cenários claramente identificados como simulados.</p>
+        <div class="form-actions form-span"><button class="button" type="submit">{{ 'Salvar alterações' if editando else 'Cadastrar cruzamento' }}</button><a class="button button-quiet" href="{{ url_for('cruzamentos.listar') }}">Cancelar</a></div>
+    </form>
+</section>
+{% endblock %}

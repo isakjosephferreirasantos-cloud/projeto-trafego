@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Relatórios · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">Análise de dados</p><h1>Relatórios</h1><p class="muted">Filtre os cruzamentos e exporte os resultados para uso acadêmico.</p></div>
+</section>
+<section class="panel">
+    <form method="get" class="filter-form report-filter">
+        <div class="filter-search"><label for="nome">Nome do cruzamento</label><input id="nome" name="nome" type="search" placeholder="Buscar por nome" value="{{ filtros.nome }}"></div>
+        <div><label for="tipo_intersecao">Tipo de interseção</label><select id="tipo_intersecao" name="tipo_intersecao"><option value="">Todos</option>{% for tipo in tipos %}<option value="{{ tipo }}" {% if filtros.tipo_intersecao == tipo %}selected{% endif %}>{{ 'Semáforo' if tipo == 'Semaforo' else 'Rotatória' }}</option>{% endfor %}</select></div>
+        <div><label for="congestionamento">Congestionamento</label><select id="congestionamento" name="congestionamento"><option value="">Todos</option>{% for nivel in niveis %}<option value="{{ nivel }}" {% if filtros.congestionamento == nivel %}selected{% endif %}>{{ nivel }}</option>{% endfor %}</select></div>
+        <div class="filter-actions"><button class="button button-small" type="submit">Aplicar filtros</button><a class="button button-quiet button-small" href="{{ url_for('relatorios.index') }}">Limpar</a></div>
+    </form>
+    <div class="report-toolbar">
+        <span class="muted">{{ cruzamentos|length }} cruzamento(s) no resultado</span>
+        <div class="table-actions">
+            <a class="button button-quiet button-small" href="{{ url_for('relatorios.exportar_csv', **filtros) }}">Baixar CSV</a>
+            <a class="button button-small" href="{{ url_for('relatorios.exportar_pdf', **filtros) }}">Baixar PDF</a>
+        </div>
+    </div>
+    {% if cruzamentos %}
+        <div class="table-wrap"><table>
+            <thead><tr><th>Nome</th><th>Interseção</th><th>Verde / vermelho</th><th>Onda verde</th><th>Espera média</th><th>Congestionamento</th><th>Veículos/min</th></tr></thead>
+            <tbody>{% for item in cruzamentos %}
+                <tr><td><strong>{{ item.nome }}</strong></td><td>{{ 'Semáforo' if item.tipo_intersecao == 'Semaforo' else 'Rotatória' }}</td><td>{{ item.tempo_verde }} s / {{ item.tempo_vermelho }} s</td><td>{{ 'Sim' if item.onda_verde else 'Não' }}</td><td>{{ "%.1f"|format(item.tempo_espera_medio) }} s</td><td><span class="badge badge-{{ item.congestionamento|lower }}">{{ item.congestionamento }}</span></td><td>{{ item.veiculos_minuto }}</td></tr>
+            {% endfor %}</tbody>
+        </table></div>
+    {% else %}
+        <div class="empty-state"><span class="empty-icon">▤</span><h3>Nenhum dado para exibir</h3><p>Ajuste os filtros e tente novamente.</p></div>
+    {% endif %}
+    <p class="form-note report-note">Os relatórios refletem os registros do sistema. Confirme a origem dos dados e identifique valores simulados antes de utilizá-los em análises.</p>
+</section>
+{% endblock %}

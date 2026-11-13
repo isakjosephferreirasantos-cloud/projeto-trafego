@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Usuários · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">Administração</p><h1>Usuários</h1><p class="muted">Gerencie contas, cargos e acesso à plataforma.</p></div>
+    <a class="button" href="{{ url_for('usuarios.novo') }}"><span aria-hidden="true">＋</span> Novo usuário</a>
+</section>
+<section class="panel">
+    <form method="get" class="filter-form">
+        <div class="filter-search"><label for="q">Buscar</label><input id="q" name="q" type="search" placeholder="Nome ou e-mail" value="{{ filtros.q }}"></div>
+        <div><label for="cargo">Cargo</label><select id="cargo" name="cargo"><option value="">Todos os cargos</option>{% for item in cargos %}<option value="{{ item }}" {% if filtros.cargo == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></div>
+        <div><label for="status">Status</label><select id="status" name="status"><option value="">Todos</option><option value="ativo" {% if filtros.status == 'ativo' %}selected{% endif %}>Ativo</option><option value="inativo" {% if filtros.status == 'inativo' %}selected{% endif %}>Inativo</option></select></div>
+        <div class="filter-actions"><button class="button button-small" type="submit">Filtrar</button><a class="button button-quiet button-small" href="{{ url_for('usuarios.listar') }}">Limpar</a></div>
+    </form>
+    {% if usuarios %}
+        <div class="table-wrap"><table>
+            <thead><tr><th>Nome</th><th>E-mail</th><th>Cargo</th><th>Status</th><th>Cadastro</th><th>Ações</th></tr></thead>
+            <tbody>{% for usuario in usuarios %}
+                <tr>
+                    <td><strong>{{ usuario.nome }}</strong></td><td>{{ usuario.email }}</td><td>{{ usuario.cargo }}</td>
+                    <td><span class="badge {{ 'badge-baixo' if usuario.ativo else 'badge-inativo' }}">{{ 'Ativo' if usuario.ativo else 'Inativo' }}</span></td>
+                    <td>{{ usuario.criado_em.strftime('%d/%m/%Y') if usuario.criado_em else '—' }}</td>
+                    <td><div class="table-actions">
+                        <a class="button button-quiet button-small" href="{{ url_for('usuarios.editar', usuario_id=usuario.id) }}">Editar</a>
+                        {% if usuario.id != current_user.id %}
+                            <form method="post" action="{{ url_for('usuarios.excluir', usuario_id=usuario.id) }}" onsubmit="return confirm('Excluir o usuário {{ usuario.nome|e }}?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="button button-danger button-small" type="submit">Excluir</button>
+                            </form>
+                        {% endif %}
+                    </div></td>
+                </tr>
+            {% endfor %}</tbody>
+        </table></div>
+    {% else %}
+        <div class="empty-state"><span class="empty-icon">◉</span><h3>Nenhum usuário encontrado</h3><p>Altere os filtros ou cadastre um novo usuário.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

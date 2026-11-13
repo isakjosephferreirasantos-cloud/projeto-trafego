@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Painel · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Visão geral</p>
+        <h1>Olá, {{ current_user.nome.split()[0] }}.</h1>
+        <p class="muted">Acompanhe os cruzamentos e as simulações cadastradas no sistema.</p>
+    </div>
+    {% if current_user.cargo in ['Administrador', 'Engenheiro'] %}
+        <a class="button" href="{{ url_for('cruzamentos.novo') }}"><span aria-hidden="true">＋</span> Novo cruzamento</a>
+    {% endif %}
+</section>
+
+<section class="stats-grid" aria-label="Resumo do sistema">
+    <article class="stat-card">
+        <span class="stat-icon">⌘</span>
+        <span class="stat-label">Cruzamentos</span>
+        <strong class="stat-value">{{ total_cruzamentos }}</strong>
+        <span class="stat-foot">registrados no sistema</span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-blue">◉</span>
+        <span class="stat-label">Usuários</span>
+        <strong class="stat-value">{{ total_usuarios }}</strong>
+        <span class="stat-foot">contas cadastradas</span>
+    </article>
+    <article class="stat-card">
+        <span class="stat-icon stat-icon-orange">⚠</span>
+        <span class="stat-label">Congestionamento alto</span>
+        <strong class="stat-value">{{ congestionamento_alto }}</strong>
+        <span class="stat-foot">cruzamentos sinalizados</span>
+    </article>
+</section>
+
+<section class="panel">
+    <div class="panel-heading">
+        <div>
+            <p class="eyebrow">Atividade</p>
+            <h2>Cruzamentos recentes</h2>
+        </div>
+        <a class="text-link" href="{{ url_for('cruzamentos.listar') }}">Ver todos <span aria-hidden="true">→</span></a>
+    </div>
+    {% if cruzamentos_recentes %}
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Nome</th><th>Interseção</th><th>Congestionamento</th><th>Espera média</th><th></th></tr></thead>
+                <tbody>
+                    {% for cruzamento in cruzamentos_recentes %}
+                        <tr>
+                            <td><strong>{{ cruzamento.nome }}</strong></td>
+                            <td>{{ cruzamento.tipo_intersecao }}</td>
+                            <td><span class="badge badge-{{ cruzamento.congestionamento|lower }}">{{ cruzamento.congestionamento }}</span></td>
+                            <td>{{ "%.1f"|format(cruzamento.tempo_espera_medio) }} s</td>
+                            <td><a class="text-link" href="{{ url_for('cruzamentos.simulador', cruzamento_id=cruzamento.id) }}">Abrir simulação</a></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-state"><span class="empty-icon">⌘</span><h3>Nenhum cruzamento cadastrado</h3><p>Cadastre o primeiro cruzamento para começar as simulações.</p></div>
+    {% endif %}
+</section>
+{% endblock %}

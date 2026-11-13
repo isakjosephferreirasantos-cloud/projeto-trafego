@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% set editando = usuario is not none %}
+{% block title %}{{ 'Editar usuário' if editando else 'Novo usuário' }} · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div><p class="eyebrow">Administração</p><h1>{{ 'Editar usuário' if editando else 'Novo usuário' }}</h1><p class="muted">Preencha os dados da conta e defina suas permissões.</p></div>
+    <a class="button button-quiet" href="{{ url_for('usuarios.listar') }}">← Voltar à lista</a>
+</section>
+<section class="panel form-panel">
+    <form method="post" class="form-grid">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-field form-span"><label for="nome">Nome completo <span class="required">*</span></label><input id="nome" name="nome" type="text" maxlength="120" required value="{{ request.form.get('nome', usuario.nome if editando else '') }}"></div>
+        <div class="form-field form-span"><label for="email">E-mail <span class="required">*</span></label><input id="email" name="email" type="email" maxlength="254" required value="{{ request.form.get('email', usuario.email if editando else '') }}"></div>
+        <div class="form-field"><label for="cargo">Cargo <span class="required">*</span></label><select id="cargo" name="cargo" required>{% for item in cargos %}<option value="{{ item }}" {% if request.form.get('cargo', usuario.cargo if editando else 'Operador') == item %}selected{% endif %}>{{ item }}</option>{% endfor %}</select></div>
+        <div class="form-field"><label for="senha">Senha {% if not editando %}<span class="required">*</span>{% else %}<span class="field-hint">deixe em branco para manter</span>{% endif %}</label><input id="senha" name="senha" type="password" minlength="8" autocomplete="new-password" {% if not editando %}required{% endif %}></div>
+        <label class="check-row form-span"><input type="checkbox" name="ativo" {% if request.method == 'POST' %}{% if request.form.get('ativo') %}checked{% endif %}{% elif not editando or usuario.ativo %}checked{% endif %}> Conta ativa</label>
+        <div class="form-actions form-span"><button class="button" type="submit">{{ 'Salvar alterações' if editando else 'Cadastrar usuário' }}</button><a class="button button-quiet" href="{{ url_for('usuarios.listar') }}">Cancelar</a></div>
+    </form>
+</section>
+{% endblock %}
