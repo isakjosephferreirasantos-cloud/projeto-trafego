@@ -6,6 +6,7 @@
     const redInput = document.querySelector("#red-time");
     const waveInput = document.querySelector("#green-wave");
     const toggleButton = document.querySelector("#toggle-intersection");
+    const proposalSelect = document.querySelector("#proposal-type");
     const saveButton = document.querySelector("#save-simulation");
     const statusMessage = document.querySelector("#simulation-status");
     const greenOutput = document.querySelector("#green-time-output");
@@ -14,7 +15,7 @@
     const signalState = document.querySelector("#signal-state");
     const signalIndicatorLight = document.querySelector("#signal-indicator-light");
 
-    if (!config || !greenInput || !redInput || !waveInput || !toggleButton || !saveButton) {
+    if (!config || !greenInput || !redInput || !waveInput || (!toggleButton && !proposalSelect)) {
         return;
     }
 
@@ -30,9 +31,14 @@
         trunk: 0x765741,
         red: 0xe94e4e,
         green: 0x2ecc71,
-        carWhite: 0xf0f0eb,
-        carSilver: 0xaeb9c4,
-        carBlue: 0x668fe2,
+        carRed: 0xf06458,
+        carBlue: 0x4fa8f5,
+        carYellow: 0xffc857,
+        carTeal: 0x35c6a4,
+        carOrange: 0xf28c45,
+        carPurple: 0x9b83f6,
+        carGreen: 0x61c777,
+        carWhite: 0xe8edf2,
         glass: 0x526d7d
     };
 
@@ -79,13 +85,23 @@
         return mesh;
     }
 
-    function addRoadMarkings(scene) {
+    function addRoadMarkings(scene, mode) {
         for (let offset = -19; offset <= 17; offset += 5) {
-            box(scene, 2.3, 0.025, 0.11, COLORS.roadLine, offset + 1.15, 0.035, 0);
-            box(scene, 0.11, 0.025, 2.3, COLORS.roadLine, 0, 0.035, offset + 1.15);
+            const position = offset + 1.15;
+            if (mode !== "Rotatoria" || Math.abs(position) > 9.5) {
+                box(scene, 2.3, 0.025, 0.11, COLORS.roadLine, position, 0.035, 0);
+                box(scene, 0.11, 0.025, 2.3, COLORS.roadLine, 0, 0.035, position);
+            }
         }
 
-        const zebraOffsets = [-6.5, 6.5];
+        if (mode === "Semaforo") {
+            [-7, 7].forEach((offset) => {
+                box(scene, 0.14, 0.04, 4.3, COLORS.roadLine, offset, 0.045, 0);
+                box(scene, 4.3, 0.04, 0.14, COLORS.roadLine, 0, 0.045, offset);
+            });
+        }
+
+        const zebraOffsets = mode === "Rotatoria" ? [-12, 12] : [-6.5, 6.5];
         zebraOffsets.forEach((offset) => {
             for (let index = 0; index < 7; index += 1) {
                 const laneOffset = -2.7 + index * 0.9;
@@ -185,6 +201,21 @@
         ];
     }
 
+    const ROUNDABOUT_RADIUS = 6.15;
+    const ROUNDABOUT_SAFE_GAP = 3.6;
+    const ROUNDABOUT_ENTRY_GAP = 4.8;
+    const ROUNDABOUT_ENTRY_BUFFER = 5;
+
+    function addRoundaboutApron(scene) {
+        const apron = new THREE.Mesh(
+            new THREE.CylinderGeometry(7.5, 7.5, 0.13, 48),
+            material(COLORS.asphalt)
+        );
+        apron.position.y = -0.005;
+        apron.receiveShadow = true;
+        scene.add(apron);
+    }
+
     function addRoundabout(scene) {
         const curb = new THREE.Mesh(
             new THREE.CylinderGeometry(4.45, 4.45, 0.34, 24),
@@ -208,19 +239,89 @@
         scene.add(islandCap);
 
         const outerLine = new THREE.Mesh(
-            new THREE.TorusGeometry(5.15, 0.075, 5, 48),
+            new THREE.TorusGeometry(7.2, 0.075, 5, 48),
             material(COLORS.roadLine)
         );
         outerLine.rotation.x = Math.PI / 2;
         outerLine.position.y = 0.06;
         scene.add(outerLine);
         const innerLine = new THREE.Mesh(
-            new THREE.TorusGeometry(4.55, 0.075, 5, 48),
+            new THREE.TorusGeometry(4.65, 0.075, 5, 48),
             material(COLORS.roadLine)
         );
         innerLine.rotation.x = Math.PI / 2;
         innerLine.position.y = 0.07;
         scene.add(innerLine);
+        const flowArrowShape = new THREE.Shape();
+        flowArrowShape.moveTo(-0.74, -0.19);
+        flowArrowShape.lineTo(0.13, -0.19);
+        flowArrowShape.lineTo(0.13, -0.42);
+        flowArrowShape.lineTo(0.75, 0);
+        flowArrowShape.lineTo(0.13, 0.42);
+        flowArrowShape.lineTo(0.13, 0.19);
+        flowArrowShape.lineTo(-0.74, 0.19);
+        flowArrowShape.closePath();
+        [0, Math.PI / 2, Math.PI, Math.PI * 1.5].forEach((angle) => {
+            const radial = new THREE.Vector3(Math.cos(angle), 0, Math.sin(angle));
+            const tangent = new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle));
+            const lineYaw = -Math.atan2(tangent.z, tangent.x);
+            const flowArrow = new THREE.Mesh(
+                new THREE.ShapeGeometry(flowArrowShape),
+                material(0xf0f1e4)
+            );
+            flowArrow.rotation.set(-Math.PI / 2, lineYaw, 0);
+            flowArrow.position.set(radial.x * 5.85, 0.085, radial.z * 5.85);
+            scene.add(flowArrow);
+
+            for (let index = -3; index <= 3; index += 1) {
+                if (index === 0) {
+                    continue;
+                }
+                const marker = radial.clone().multiplyScalar(10.8)
+                    .add(tangent.clone().multiplyScalar(index * 0.84));
+                box(scene, 0.58, 0.035, 0.14, COLORS.roadLine, marker.x, 0.085, marker.z, {
+                    rotationY: lineYaw
+                });
+            }
+
+            for (let index = -1; index <= 1; index += 1) {
+                const yieldTriangleShape = new THREE.Shape();
+                yieldTriangleShape.moveTo(0.2, 0);
+                yieldTriangleShape.lineTo(-0.18, 0.15);
+                yieldTriangleShape.lineTo(-0.18, -0.15);
+                yieldTriangleShape.closePath();
+                const yieldTriangle = new THREE.Mesh(
+                    new THREE.ShapeGeometry(yieldTriangleShape),
+                    material(0xf0f1e4)
+                );
+                const marker = radial.clone().multiplyScalar(10.35)
+                    .add(tangent.clone().multiplyScalar(1.25 + index * 0.4));
+                yieldTriangle.rotation.set(-Math.PI / 2, -angle, 0);
+                yieldTriangle.position.set(marker.x, 0.085, marker.z);
+                scene.add(yieldTriangle);
+            }
+
+            const splitterPosition = radial.clone().multiplyScalar(9.3);
+            const splitterCurb = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 12, 8),
+                material(COLORS.sidewalk)
+            );
+            splitterCurb.position.set(splitterPosition.x, 0.14, splitterPosition.z);
+            splitterCurb.scale.set(1.8, 0.16, 0.43);
+            splitterCurb.rotation.y = -angle;
+            splitterCurb.receiveShadow = true;
+            scene.add(splitterCurb);
+
+            const splitterIsland = new THREE.Mesh(
+                new THREE.SphereGeometry(1, 12, 8),
+                material(COLORS.grassLight)
+            );
+            splitterIsland.position.set(splitterPosition.x, 0.24, splitterPosition.z);
+            splitterIsland.scale.set(1.56, 0.13, 0.3);
+            splitterIsland.rotation.y = -angle;
+            splitterIsland.castShadow = true;
+            scene.add(splitterIsland);
+        });
         addTree(scene, -0.55, 0.15, 0.9);
         addTree(scene, 0.7, -0.5, 0.72);
         addTree(scene, 0.55, 0.85, 0.62);
@@ -230,7 +331,7 @@
         const group = new THREE.Group();
         const body = new THREE.Mesh(
             new THREE.BoxGeometry(1.58, 0.48, 0.87),
-            material(color, 0.5)
+            material(color, 0.32)
         );
         body.position.y = 0.43;
         body.castShadow = true;
@@ -246,25 +347,63 @@
 
         const hood = new THREE.Mesh(
             new THREE.BoxGeometry(0.3, 0.19, 0.73),
-            material(color, 0.55)
+            material(color, 0.36)
         );
         hood.position.set(0.62, 0.68, 0);
         group.add(hood);
 
+        const roof = new THREE.Mesh(
+            new THREE.BoxGeometry(0.57, 0.08, 0.61),
+            material(color, 0.3)
+        );
+        roof.position.set(-0.09, 1.08, 0);
+        group.add(roof);
+
+        const makeLamp = (lampColor, emissiveColor, x, z) => {
+            const lamp = new THREE.Mesh(
+                new THREE.BoxGeometry(0.1, 0.12, 0.17),
+                new THREE.MeshStandardMaterial({
+                    color: lampColor,
+                    emissive: emissiveColor,
+                    emissiveIntensity: 0.8,
+                    roughness: 0.35
+                })
+            );
+            lamp.position.set(x, 0.55, z);
+            group.add(lamp);
+            return lamp;
+        };
+        [-0.25, 0.25].forEach((side) => {
+            makeLamp(0xfff1bf, 0x8c672c, 0.78, side);
+        });
+        const brakeLights = [-0.26, 0.26].map((side) => (
+            makeLamp(0xff4b4b, 0x8e1111, -0.78, side)
+        ));
+
+        const wheels = [];
         [-0.48, 0.48].forEach((x) => {
             [-0.43, 0.43].forEach((z) => {
-                const wheel = new THREE.Mesh(
+                const wheel = new THREE.Group();
+                wheel.position.set(x, 0.22, z);
+                const tire = new THREE.Mesh(
                     new THREE.CylinderGeometry(0.19, 0.19, 0.12, 8),
                     material(0x1b2024, 0.95)
                 );
-                wheel.rotation.x = Math.PI / 2;
-                wheel.position.set(x, 0.22, z);
+                tire.rotation.x = Math.PI / 2;
+                wheel.add(tire);
+                const rim = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.085, 0.085, 0.13, 8),
+                    material(0xc3cbd0, 0.35)
+                );
+                rim.rotation.x = Math.PI / 2;
+                wheel.add(rim);
                 group.add(wheel);
+                wheels.push(wheel);
             });
         });
 
         group.rotation.y = axis === "z" ? -direction * Math.PI / 2 : (direction < 0 ? Math.PI : 0);
-        return { group, axis, direction, lane, progress, velocity: 0 };
+        return { group, axis, direction, lane, progress, velocity: 0, wheels, brakeLights };
     }
 
     function setLinearCarPosition(car) {
@@ -277,6 +416,20 @@
             car.group.position.x = car.lane;
             car.group.position.z = travelCoordinate;
         }
+    }
+
+    function spinCarWheels(car, distance) {
+        const rotation = distance / 0.19;
+        car.wheels.forEach((wheel) => {
+            wheel.rotation.z += rotation;
+        });
+    }
+
+    function updateBrakeLights(car) {
+        const stopped = car.velocity < 0.3;
+        car.brakeLights.forEach((light) => {
+            light.material.emissiveIntensity = stopped ? 1.15 : 0.2;
+        });
     }
 
     function disposeObject(object) {
@@ -294,7 +447,11 @@
     const SIGNAL_YELLOW_SECONDS = 3;
     const SIGNAL_CLEARANCE_SECONDS = 1;
     const SIMULATION_TIME_SCALE = 3;
-    const SIGNAL_STOP_LINE = 11.6;
+    const SIGNAL_STOP_LINE = 13.2;
+    const SIGNAL_BRAKING_DECELERATION = 4.8;
+    const SIGNAL_YELLOW_BUFFER = 0.45;
+    const VEHICLE_ACCELERATION = 2.2;
+    const VEHICLE_BRAKING = 5.2;
 
     function updateSemaphoreLights(world, delta) {
         if (!world.lights.length) {
@@ -371,15 +528,15 @@
         });
     }
 
-    function buildRoundaboutRoute(entryAngle) {
-        const radius = 6.15;
+    function buildRoundaboutRoute(entryAngle, turnAngle) {
+        const radius = ROUNDABOUT_RADIUS;
         const radial = (angle, distance) => new THREE.Vector3(
             Math.cos(angle) * distance,
             0.06,
             Math.sin(angle) * distance
         );
         const right = (angle) => new THREE.Vector3(-Math.sin(angle), 0, Math.cos(angle));
-        const laneOffset = right(entryAngle).multiplyScalar(-0.92);
+        const laneOffset = right(entryAngle).multiplyScalar(1.25);
         const points = [
             radial(entryAngle, 23).add(laneOffset.clone()),
             radial(entryAngle, 16).add(laneOffset.clone()),
@@ -388,13 +545,14 @@
             radial(entryAngle, radius)
         ];
 
-        const exitAngle = entryAngle - Math.PI;
-        for (let step = 1; step <= 36; step += 1) {
-            const angle = entryAngle - Math.PI * step / 36;
+        const exitAngle = entryAngle + turnAngle;
+        const arcSteps = Math.ceil(turnAngle / (Math.PI / 36));
+        for (let step = 1; step <= arcSteps; step += 1) {
+            const angle = entryAngle + turnAngle * step / arcSteps;
             points.push(radial(angle, radius));
         }
-        const exitOffset = right(exitAngle).multiplyScalar(0.92);
-        [7.4, 9.5, 15, 23].forEach((distance) => {
+        const exitOffset = right(exitAngle).multiplyScalar(-1.25);
+        [7.4, 9.5, 15, 23, 30].forEach((distance) => {
             points.push(radial(exitAngle, distance).add(exitOffset.clone()));
         });
 
@@ -427,8 +585,8 @@
     }
 
     function sampleRoute(route, distance) {
-        const wrapped = ((distance % route.length) + route.length) % route.length;
-        const position = wrapped / route.length * (route.samples.length - 1);
+        const clampedDistance = Math.max(0, Math.min(distance, route.length));
+        const position = clampedDistance / route.length * (route.samples.length - 1);
         const index = Math.min(Math.floor(position), route.samples.length - 2);
         const fraction = position - index;
         const point = route.samples[index].clone().lerp(route.samples[index + 1], fraction);
@@ -444,7 +602,16 @@
     }
 
     function addTraffic(scene, mode) {
-        const colors = [COLORS.carWhite, COLORS.carSilver, COLORS.carBlue, COLORS.carWhite];
+        const colors = [
+            COLORS.carRed,
+            COLORS.carBlue,
+            COLORS.carYellow,
+            COLORS.carTeal,
+            COLORS.carOrange,
+            COLORS.carPurple,
+            COLORS.carGreen,
+            COLORS.carWhite
+        ];
         const cars = [];
         const routes = [
             { axis: "x", direction: 1, lane: 0.9, angle: Math.PI },
@@ -452,23 +619,42 @@
             { axis: "z", direction: 1, lane: -0.9, angle: -Math.PI / 2 },
             { axis: "z", direction: -1, lane: 0.9, angle: Math.PI / 2 }
         ];
+        const turnAngles = [Math.PI / 2, Math.PI, Math.PI * 1.5];
+        const createRoundaboutCar = (route, routeIndex, turnIndex, generation, progress) => {
+            const path = buildRoundaboutRoute(route.angle, turnAngles[turnIndex]);
+            const car = makeCar(
+                colors[(turnIndex + routeIndex + generation) % colors.length],
+                route.axis,
+                route.direction,
+                route.lane,
+                progress
+            );
+            car.routeIndex = routeIndex;
+            car.turnIndex = turnIndex;
+            car.route = path;
+            car.speedFactor = 0.86 + turnIndex * 0.05;
+            car.spawnNext = () => createRoundaboutCar(
+                route,
+                routeIndex,
+                (turnIndex + 1) % turnAngles.length,
+                generation + 1,
+                0
+            );
+            setRouteCarPosition(car);
+            scene.add(car.group);
+            return car;
+        };
 
         routes.forEach((route, routeIndex) => {
             if (mode === "Rotatoria") {
-                const path = buildRoundaboutRoute(route.angle);
                 for (let index = 0; index < 3; index += 1) {
-                    const car = makeCar(
-                        colors[(index + routeIndex) % colors.length],
-                        route.axis,
-                        route.direction,
-                        route.lane,
+                    const car = createRoundaboutCar(
+                        route,
+                        routeIndex,
+                        index,
+                        0,
                         index * 5.3
                     );
-                    car.routeIndex = routeIndex;
-                    car.route = path;
-                    car.speedFactor = 0.86 + index * 0.05;
-                    setRouteCarPosition(car);
-                    scene.add(car.group);
                     cars.push(car);
                 }
                 return;
@@ -516,19 +702,53 @@
                 }
 
                 const safeGap = 3.2;
-                let desiredSpeed = Math.min(3.2 * car.speedFactor, Math.max(0, (gap - safeGap) * 1.1));
-                const isRed = world.mode === "Semaforo" && world.greenAxis !== car.axis;
-                if (isRed && car.progress < SIGNAL_STOP_LINE) {
-                    desiredSpeed = Math.min(
-                        desiredSpeed,
-                        Math.max(0, (SIGNAL_STOP_LINE - car.progress) * 1.15)
-                    );
+                let desiredSpeed = Math.min(
+                    3.2 * car.speedFactor,
+                    Math.sqrt(2 * SIGNAL_BRAKING_DECELERATION * Math.max(0, gap - safeGap))
+                );
+                let mustStopAtSignal = false;
+                const phase = world.signalPhase;
+                const isYellowForCar = world.mode === "Semaforo"
+                    && phase.axis === car.axis
+                    && phase.color === "yellow";
+                if (!isYellowForCar) {
+                    car.yellowStopDecision = undefined;
+                }
+                if (world.mode === "Semaforo" && car.progress <= SIGNAL_STOP_LINE) {
+                    mustStopAtSignal = phase.axis !== car.axis || phase.color === "red";
+                    if (isYellowForCar) {
+                        if (car.yellowStopDecision === undefined) {
+                            const stoppingDistance = (car.velocity ** 2) / (2 * SIGNAL_BRAKING_DECELERATION)
+                                + SIGNAL_YELLOW_BUFFER;
+                            const distanceToStopLine = SIGNAL_STOP_LINE - car.progress;
+                            car.yellowStopDecision = car.velocity < 0.3
+                                || distanceToStopLine > stoppingDistance;
+                        }
+                        mustStopAtSignal = car.yellowStopDecision;
+                    }
+
+                    if (mustStopAtSignal) {
+                        const distanceToStopLine = SIGNAL_STOP_LINE - car.progress;
+                        desiredSpeed = Math.min(
+                            desiredSpeed,
+                            Math.sqrt(2 * SIGNAL_BRAKING_DECELERATION * distanceToStopLine)
+                        );
+                    }
                 }
 
-                car.velocity += (desiredSpeed - car.velocity) * Math.min(1, delta * 1.8);
+                const speedDifference = desiredSpeed - car.velocity;
+                const accelerationLimit = speedDifference < 0 ? VEHICLE_BRAKING : VEHICLE_ACCELERATION;
+                car.velocity += Math.sign(speedDifference) * Math.min(
+                    Math.abs(speedDifference),
+                    accelerationLimit * delta
+                );
                 const previousProgress = car.progress;
                 let nextProgress = previousProgress + car.velocity * delta;
-                if (isRed && previousProgress < SIGNAL_STOP_LINE && nextProgress >= SIGNAL_STOP_LINE) {
+                if (
+                    mustStopAtSignal
+                    && previousProgress <= SIGNAL_STOP_LINE
+                    && nextProgress > SIGNAL_STOP_LINE
+                ) {
                     nextProgress = SIGNAL_STOP_LINE;
                     car.velocity = 0;
                 }
@@ -538,80 +758,254 @@
                     car.velocity = Math.min(car.velocity, Math.max(0, (nextProgress - previousProgress) / Math.max(delta, 0.001)));
                 }
                 car.progress = nextProgress >= 42 ? nextProgress - 42 : nextProgress;
+                spinCarWheels(car, nextProgress - previousProgress);
+                updateBrakeLights(car);
                 setLinearCarPosition(car);
             });
         });
     }
 
-    function isRoundaboutEntryBlocked(world, car) {
-        const conflictAngle = 0.43;
-        return world.cars.some((other) => {
-            if (other === car) {
-                return false;
+    function isOnRoundaboutRing(car, progress = car.progress) {
+        return progress >= car.route.entryDistance && progress <= car.route.ringEndDistance;
+    }
+
+    function carsOverlap(first, second) {
+        const halfLength = 0.87;
+        const halfWidth = 0.5;
+        const axesFor = (car) => {
+            const yaw = car.group.rotation.y;
+            return [
+                { x: Math.cos(yaw), z: -Math.sin(yaw) },
+                { x: Math.sin(yaw), z: Math.cos(yaw) }
+            ];
+        };
+        const firstAxes = axesFor(first);
+        const secondAxes = axesFor(second);
+        const deltaX = second.group.position.x - first.group.position.x;
+        const deltaZ = second.group.position.z - first.group.position.z;
+
+        return [...firstAxes, ...secondAxes].every((axis) => {
+            const centerDistance = Math.abs(deltaX * axis.x + deltaZ * axis.z);
+            const firstRadius = halfLength * Math.abs(axis.x * firstAxes[0].x + axis.z * firstAxes[0].z)
+                + halfWidth * Math.abs(axis.x * firstAxes[1].x + axis.z * firstAxes[1].z);
+            const secondRadius = halfLength * Math.abs(axis.x * secondAxes[0].x + axis.z * secondAxes[0].z)
+                + halfWidth * Math.abs(axis.x * secondAxes[1].x + axis.z * secondAxes[1].z);
+            return centerDistance < firstRadius + secondRadius + 0.12;
+        });
+    }
+
+    function chooseYieldingCar(first, second, previousProgressByCar) {
+        const firstWasOnRing = isOnRoundaboutRing(first, previousProgressByCar.get(first));
+        const secondWasOnRing = isOnRoundaboutRing(second, previousProgressByCar.get(second));
+        if (firstWasOnRing !== secondWasOnRing) {
+            return firstWasOnRing ? second : first;
+        }
+
+        const firstApproaching = first.progress < first.route.entryDistance;
+        const secondApproaching = second.progress < second.route.entryDistance;
+        if (firstApproaching !== secondApproaching) {
+            return firstApproaching ? first : second;
+        }
+        if (first.routeIndex !== second.routeIndex) {
+            return first.routeIndex > second.routeIndex ? first : second;
+        }
+        return first.progress < second.progress ? first : second;
+    }
+
+    function resolveRoundaboutCollisions(world, previousProgressByCar, travelledDistanceByCar) {
+        const activeCars = world.cars.filter((car) => car.group.visible);
+        const rollback = (car) => {
+            const distance = travelledDistanceByCar.get(car) || 0;
+            if (distance <= 0) {
+                return;
             }
-            if (
-                other.progress < other.route.entryDistance
-                || other.progress > other.route.ringEndDistance
-            ) {
+            spinCarWheels(car, -distance);
+            car.progress = previousProgressByCar.get(car);
+            car.velocity = 0;
+            travelledDistanceByCar.set(car, 0);
+            setRouteCarPosition(car);
+            updateBrakeLights(car);
+        };
+
+        for (let pass = 0; pass < activeCars.length; pass += 1) {
+            let foundCollision = false;
+            for (let firstIndex = 0; firstIndex < activeCars.length; firstIndex += 1) {
+                for (let secondIndex = firstIndex + 1; secondIndex < activeCars.length; secondIndex += 1) {
+                    const first = activeCars[firstIndex];
+                    const second = activeCars[secondIndex];
+                    if (!carsOverlap(first, second)) {
+                        continue;
+                    }
+
+                    foundCollision = true;
+                    const yieldingCar = chooseYieldingCar(first, second, previousProgressByCar);
+                    rollback(yieldingCar);
+                    if (carsOverlap(first, second)) {
+                        rollback(yieldingCar === first ? second : first);
+                    }
+                }
+            }
+            if (!foundCollision) {
+                break;
+            }
+        }
+    }
+
+    function isRoundaboutEntryBlocked(car, ringCars) {
+        const conflictAngle = ROUNDABOUT_ENTRY_GAP / ROUNDABOUT_RADIUS;
+        return ringCars.some(({ vehicle, angle }) => {
+            if (vehicle === car) {
                 return false;
             }
             const difference = Math.atan2(
-                Math.sin(other.currentAngle - car.route.entryAngle),
-                Math.cos(other.currentAngle - car.route.entryAngle)
+                Math.sin(angle - car.route.entryAngle),
+                Math.cos(angle - car.route.entryAngle)
             );
             return Math.abs(difference) < conflictAngle;
         });
     }
 
     function updateRoundaboutTraffic(world, delta) {
-        const lanes = new Map();
-        world.cars.forEach((car) => {
-            if (!lanes.has(car.routeIndex)) {
-                lanes.set(car.routeIndex, []);
+        const dueSpawns = [];
+        world.pendingSpawns = world.pendingSpawns.filter((spawn) => {
+            spawn.remaining -= delta;
+            if (spawn.remaining <= 0) {
+                dueSpawns.push(spawn);
+                return false;
             }
-            lanes.get(car.routeIndex).push(car);
+            return true;
+        });
+        dueSpawns.forEach((spawn) => {
+            world.cars.push(spawn.create());
         });
 
-        lanes.forEach((cars) => {
+        const previousProgressByCar = new Map(world.cars.map((car) => [car, car.progress]));
+        const travelledDistanceByCar = new Map();
+        const ringCars = world.cars
+            .filter((car) => car.group.visible && isOnRoundaboutRing(car))
+            .map((car) => ({ vehicle: car, angle: car.currentAngle }));
+        const ringGapByCar = new Map();
+        ringCars.forEach(({ vehicle, angle }) => {
+            let nearestGap = Infinity;
+            ringCars.forEach(({ vehicle: other, angle: otherAngle }) => {
+                if (other === vehicle) {
+                    return;
+                }
+                const gap = ((otherAngle - angle + Math.PI * 2) % (Math.PI * 2)) * ROUNDABOUT_RADIUS;
+                if (gap < nearestGap) {
+                    nearestGap = gap;
+                }
+            });
+            ringGapByCar.set(vehicle, nearestGap);
+        });
+
+        const approachLanes = new Map();
+        const exitLanes = new Map();
+        world.cars.forEach((car) => {
+            if (!car.group.visible) {
+                return;
+            }
+            if (car.progress < car.route.entryDistance) {
+                if (!approachLanes.has(car.routeIndex)) {
+                    approachLanes.set(car.routeIndex, []);
+                }
+                approachLanes.get(car.routeIndex).push(car);
+            } else if (car.progress > car.route.ringEndDistance) {
+                const turn = ((car.route.exitAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                const exitKey = Math.round(turn * 1000) % Math.round(Math.PI * 2 * 1000);
+                if (!exitLanes.has(exitKey)) {
+                    exitLanes.set(exitKey, []);
+                }
+                exitLanes.get(exitKey).push(car);
+            }
+        });
+
+        const gapByCar = new Map();
+        approachLanes.forEach((cars) => {
             cars.sort((first, second) => first.progress - second.progress);
             cars.forEach((car, index) => {
-                const leader = cars[(index + 1) % cars.length];
-                let gap = leader.progress - car.progress;
-                if (gap <= 0) {
-                    gap += car.route.length;
-                }
-                const safeGap = 3.2;
-                let desiredSpeed = Math.min(3.1 * car.speedFactor, Math.max(0, (gap - safeGap) * 1.15));
-                const entryStop = car.route.entryDistance - 2.7;
-                if (
-                    car.progress < entryStop
-                    && isRoundaboutEntryBlocked(world, car)
-                ) {
-                    desiredSpeed = Math.min(desiredSpeed, Math.max(0, (entryStop - car.progress) * 1.1));
-                }
-
-                car.velocity += (desiredSpeed - car.velocity) * Math.min(1, delta * 1.8);
-                const previousProgress = car.progress;
-                let nextProgress = previousProgress + car.velocity * delta;
-                if (
-                    car.progress < entryStop
-                    && isRoundaboutEntryBlocked(world, car)
-                    && nextProgress >= entryStop
-                ) {
-                    nextProgress = entryStop;
-                    car.velocity = 0;
-                }
-                const maxProgress = previousProgress + Math.max(0, gap - safeGap);
-                if (nextProgress > maxProgress) {
-                    nextProgress = maxProgress;
-                    car.velocity = Math.min(car.velocity, Math.max(0, (nextProgress - previousProgress) / Math.max(delta, 0.001)));
-                }
-                car.progress = nextProgress >= car.route.length
-                    ? nextProgress - car.route.length
-                    : nextProgress;
-                setRouteCarPosition(car);
+                const leader = cars[index + 1];
+                gapByCar.set(car, leader ? leader.progress - car.progress : 42);
             });
         });
+        exitLanes.forEach((cars) => {
+            cars.sort((first, second) => (
+                first.progress - first.route.ringEndDistance
+                - (second.progress - second.route.ringEndDistance)
+            ));
+            cars.forEach((car, index) => {
+                const leader = cars[index + 1];
+                const distanceFromExit = car.progress - car.route.ringEndDistance;
+                const leaderDistanceFromExit = leader
+                    ? leader.progress - leader.route.ringEndDistance
+                    : distanceFromExit + 42;
+                gapByCar.set(car, leaderDistanceFromExit - distanceFromExit);
+            });
+        });
+
+        world.cars.forEach((car) => {
+            if (!car.group.visible) {
+                return;
+            }
+            const previousProgress = car.progress;
+            const gap = gapByCar.get(car) ?? 42;
+            const safeGap = 3.2;
+            let desiredSpeed = Math.min(2.7 * car.speedFactor, Math.max(0, (gap - safeGap) * 1.15));
+            const entryStop = car.route.entryDistance - ROUNDABOUT_ENTRY_BUFFER;
+            const blockedAtEntry = car.progress < car.route.entryDistance
+                && isRoundaboutEntryBlocked(car, ringCars);
+            if (blockedAtEntry) {
+                desiredSpeed = Math.min(
+                    desiredSpeed,
+                    Math.sqrt(2 * SIGNAL_BRAKING_DECELERATION * Math.max(0, entryStop - car.progress))
+                );
+            }
+            const ringGap = ringGapByCar.get(car);
+            if (Number.isFinite(ringGap)) {
+                desiredSpeed = Math.min(
+                    desiredSpeed,
+                    Math.sqrt(2 * SIGNAL_BRAKING_DECELERATION * Math.max(0, ringGap - ROUNDABOUT_SAFE_GAP))
+                );
+            }
+
+            car.velocity += (desiredSpeed - car.velocity) * Math.min(1, delta * 1.8);
+            let nextProgress = previousProgress + car.velocity * delta;
+            if (blockedAtEntry && nextProgress > entryStop) {
+                nextProgress = Math.max(previousProgress, entryStop);
+                car.velocity = 0;
+            }
+            let maxProgress = previousProgress + Math.max(0, gap - safeGap);
+            if (Number.isFinite(ringGap)) {
+                maxProgress = Math.min(
+                    maxProgress,
+                    previousProgress + Math.max(0, ringGap - ROUNDABOUT_SAFE_GAP)
+                );
+            }
+            if (nextProgress > maxProgress) {
+                nextProgress = maxProgress;
+                car.velocity = Math.min(car.velocity, Math.max(0, (nextProgress - previousProgress) / Math.max(delta, 0.001)));
+            }
+            const finishedRoute = nextProgress >= car.route.length;
+            car.progress = finishedRoute ? car.route.length : nextProgress;
+            const travelledDistance = car.progress - previousProgress;
+            travelledDistanceByCar.set(car, travelledDistance);
+            spinCarWheels(car, travelledDistance);
+            updateBrakeLights(car);
+            setRouteCarPosition(car);
+            if (finishedRoute) {
+                car.velocity = 0;
+                car.finishedRoute = true;
+                car.group.visible = false;
+            }
+        });
+        resolveRoundaboutCollisions(world, previousProgressByCar, travelledDistanceByCar);
+        const finishedCars = world.cars.filter((car) => car.finishedRoute);
+        finishedCars.forEach((car) => {
+            world.scene.remove(car.group);
+            disposeObject(car.group);
+            world.pendingSpawns.push({ remaining: 2.5, create: car.spawnNext });
+        });
+        world.cars = world.cars.filter((car) => !car.finishedRoute);
     }
 
     function makeWorld(container, mode) {
@@ -641,11 +1035,11 @@
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = 1.12;
+        renderer.toneMappingExposure = 0.95;
         container.replaceChildren(renderer.domElement);
 
-        scene.add(new THREE.HemisphereLight(0xdce9ed, 0x3c453e, 2.05));
-        const sunlight = new THREE.DirectionalLight(0xffe6bd, 2.1);
+        scene.add(new THREE.HemisphereLight(0xdce9ed, 0x3c453e, 0.75));
+        const sunlight = new THREE.DirectionalLight(0xffe6bd, 1.0);
         sunlight.position.set(-14, 28, 13);
         sunlight.castShadow = true;
         sunlight.shadow.mapSize.set(1024, 1024);
@@ -664,13 +1058,17 @@
         ground.receiveShadow = true;
         scene.add(ground);
 
-        box(scene, 46, 0.12, 8.6, COLORS.asphalt, 0, 0, 0);
-        box(scene, 8.6, 0.12, 46, COLORS.asphalt, 0, 0, 0);
-        box(scene, 46, 0.08, 1.15, COLORS.sidewalk, 0, -0.025, 4.92);
-        box(scene, 46, 0.08, 1.15, COLORS.sidewalk, 0, -0.025, -4.92);
-        box(scene, 1.15, 0.08, 46, COLORS.sidewalk, 4.92, -0.025, 0);
-        box(scene, 1.15, 0.08, 46, COLORS.sidewalk, -4.92, -0.025, 0);
-        addRoadMarkings(scene);
+        const roadLength = mode === "Rotatoria" ? 62 : 46;
+        box(scene, roadLength, 0.12, 8.6, COLORS.asphalt, 0, 0, 0);
+        box(scene, 8.6, 0.12, roadLength, COLORS.asphalt, 0, 0, 0);
+        box(scene, roadLength, 0.08, 1.15, COLORS.sidewalk, 0, -0.025, 4.92);
+        box(scene, roadLength, 0.08, 1.15, COLORS.sidewalk, 0, -0.025, -4.92);
+        box(scene, 1.15, 0.08, roadLength, COLORS.sidewalk, 4.92, -0.025, 0);
+        box(scene, 1.15, 0.08, roadLength, COLORS.sidewalk, -4.92, -0.025, 0);
+        if (mode === "Rotatoria") {
+            addRoundaboutApron(scene);
+        }
+        addRoadMarkings(scene, mode);
         addBuildingsAndGreenery(scene);
 
         const lights = mode === "Semaforo" ? addSemaphore(scene) : [];
@@ -695,6 +1093,7 @@
             phase: "east-west-green",
             phaseElapsed: 0,
             signalPhase: { axis: "x", color: "green" },
+            pendingSpawns: [],
             resizeObserver: null
         };
         world.resizeObserver = new ResizeObserver(() => {
@@ -754,9 +1153,14 @@
 
     function updateHud() {
         const metrics = metricsForCurrentScenario();
-        document.querySelector("#hud-wait").textContent = metrics.wait.toFixed(1);
-        document.querySelector("#hud-vehicles").textContent = String(metrics.volume);
+        const waitOutput = document.querySelector("#hud-wait");
+        const vehicleOutput = document.querySelector("#hud-vehicles");
         const congestion = document.querySelector("#hud-congestion");
+        if (!waitOutput || !vehicleOutput || !congestion) {
+            return;
+        }
+        waitOutput.textContent = metrics.wait.toFixed(1);
+        vehicleOutput.textContent = String(metrics.volume);
         congestion.textContent = metrics.congestion;
         congestion.className = `badge badge-${metrics.congestion.toLowerCase()}`;
     }
@@ -773,8 +1177,13 @@
 
     function updateIntersectionMode() {
         const roundabout = state.type === "Rotatoria";
-        toggleButton.setAttribute("aria-pressed", String(roundabout));
-        toggleButton.textContent = roundabout ? "Trocar para semáforo" : "Trocar para rotatória";
+        if (toggleButton) {
+            toggleButton.setAttribute("aria-pressed", String(roundabout));
+            toggleButton.textContent = roundabout ? "Trocar para semáforo" : "Trocar para rotatória";
+        }
+        if (proposalSelect) {
+            proposalSelect.value = state.type;
+        }
         afterTitle.textContent = roundabout ? "Rotatória proposta" : "Cenário ajustado";
         statusMessage.textContent = "Cenário atualizado. Indicadores são estimativas educativas, não medições de campo.";
         if (window.THREE && window.WebGLRenderingContext) {
@@ -793,6 +1202,9 @@
     }
 
     async function saveResults() {
+        if (!saveButton) {
+            return;
+        }
         saveButton.disabled = true;
         statusMessage.textContent = "Salvando resultados da simulação...";
         const metrics = metricsForCurrentScenario();
@@ -840,14 +1252,24 @@
             document.querySelectorAll(".scene-canvas").forEach((container) => {
                 addFallbackMessage(container, new Error("Three.js ou WebGL não está disponível."));
             });
-            saveButton.addEventListener("click", saveResults);
+            if (saveButton) {
+                saveButton.addEventListener("click", saveResults);
+            }
             greenInput.addEventListener("input", updateControlLabels);
             redInput.addEventListener("input", updateControlLabels);
             waveInput.addEventListener("change", updateControlLabels);
-            toggleButton.addEventListener("click", () => {
-                state.type = state.type === "Rotatoria" ? "Semaforo" : "Rotatoria";
-                updateIntersectionMode();
-            });
+            if (toggleButton) {
+                toggleButton.addEventListener("click", () => {
+                    state.type = state.type === "Rotatoria" ? "Semaforo" : "Rotatoria";
+                    updateIntersectionMode();
+                });
+            }
+            if (proposalSelect) {
+                proposalSelect.addEventListener("change", () => {
+                    state.type = proposalSelect.value === "Rotatoria" ? "Rotatoria" : "Semaforo";
+                    updateIntersectionMode();
+                });
+            }
             updateControlLabels();
             return;
         }
@@ -862,11 +1284,21 @@
         greenInput.addEventListener("input", updateControlLabels);
         redInput.addEventListener("input", updateControlLabels);
         waveInput.addEventListener("change", updateControlLabels);
-        toggleButton.addEventListener("click", () => {
-            state.type = state.type === "Rotatoria" ? "Semaforo" : "Rotatoria";
-            updateIntersectionMode();
-        });
-        saveButton.addEventListener("click", saveResults);
+        if (toggleButton) {
+            toggleButton.addEventListener("click", () => {
+                state.type = state.type === "Rotatoria" ? "Semaforo" : "Rotatoria";
+                updateIntersectionMode();
+            });
+        }
+        if (proposalSelect) {
+            proposalSelect.addEventListener("change", () => {
+                state.type = proposalSelect.value === "Rotatoria" ? "Rotatoria" : "Semaforo";
+                updateIntersectionMode();
+            });
+        }
+        if (saveButton) {
+            saveButton.addEventListener("click", saveResults);
+        }
         updateControlLabels();
 
         const animate = (now) => {

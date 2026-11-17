@@ -17,6 +17,8 @@ def create_app(config_class=Config):
     from routes import register_blueprints
 
     register_blueprints(app)
+    with app.app_context():
+        db.create_all()
 
     @login_manager.user_loader
     def load_user(user_id):

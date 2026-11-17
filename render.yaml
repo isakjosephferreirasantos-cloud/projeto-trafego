@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: fluxo-st
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python seed.py && gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: SIMULATOR_ADMIN_PASSWORD
+        sync: false

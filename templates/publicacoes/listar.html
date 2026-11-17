@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Atualizações · Simulador de Fluxo Urbano{% endblock %}
+{% block content %}
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">Comunicação do projeto</p>
+        <h1>Atualizações do site</h1>
+        <p class="muted">Publique novidades para exibi-las na página inicial.</p>
+    </div>
+    <a class="button button-quiet" href="{{ url_for('main.dashboard') }}">Voltar ao painel</a>
+</section>
+
+<div class="publication-layout">
+    <section class="panel">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Nova publicação</p>
+                <h2>Compartilhe uma novidade</h2>
+            </div>
+        </div>
+        <form method="post" class="publication-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label for="titulo">Título</label>
+            <input id="titulo" name="titulo" type="text" maxlength="120" required value="{{ titulo }}">
+            <label for="texto">Texto</label>
+            <textarea id="texto" name="texto" maxlength="10000" rows="8" required>{{ texto }}</textarea>
+            <button class="button" type="submit">Publicar atualização <span aria-hidden="true">→</span></button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-heading">
+            <div>
+                <p class="eyebrow">Publicações recentes</p>
+                <h2>O que está no site</h2>
+            </div>
+            <span class="badge badge-baixo">{{ publicacoes|length }}</span>
+        </div>
+        {% if publicacoes %}
+            <div class="publication-list">
+                {% for publicacao in publicacoes %}
+                    <article class="publication-card">
+                        <div class="publication-card-heading">
+                            <time datetime="{{ publicacao.criada_em.isoformat() }}">{{ publicacao.criada_em.strftime("%d/%m/%Y") }}</time>
+                            <form method="post" action="{{ url_for('publicacoes.excluir', publicacao_id=publicacao.id) }}" onsubmit="return confirm('Remover esta atualização do site?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="button button-danger button-small" type="submit">Remover</button>
+                            </form>
+                        </div>
+                        <h3>{{ publicacao.titulo }}</h3>
+                        <p>{{ publicacao.texto }}</p>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <span class="empty-icon" aria-hidden="true">↗</span>
+                <h3>Nenhuma atualização publicada</h3>
+                <p>A primeira publicação aparecerá aqui e na página inicial.</p>
+            </div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

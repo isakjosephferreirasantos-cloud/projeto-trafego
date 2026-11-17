@@ -58,6 +58,20 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, senha)
 
 
+class Publicacao(db.Model):
+    __tablename__ = "publicacoes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    titulo = db.Column(db.String(120), nullable=False)
+    texto = db.Column(db.Text, nullable=False)
+    criada_em = db.Column(
+        db.DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+
+
 class Cruzamento(db.Model):
     __tablename__ = "cruzamentos"
     __table_args__ = (

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Painel · Simulador de Fluxo Urbano{% endblock %}
 {% block content %}
-<section class="page-heading">
+<section class="page-heading management-dashboard-cover">
     <div>
-        <p class="eyebrow">Visão geral</p>
-        <h1>Olá, {{ current_user.nome.split()[0] }}.</h1>
+        <p class="eyebrow">Área de gestão</p>
+        <h1>{{ current_user.nome }}</h1>
         <p class="muted">Acompanhe os cruzamentos e as simulações cadastradas no sistema.</p>
     </div>
     {% if current_user.cargo in ['Administrador', 'Engenheiro'] %}

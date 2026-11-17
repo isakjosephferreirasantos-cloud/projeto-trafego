@@ -13,13 +13,23 @@
     <header class="topbar">
         <a class="brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
             <span class="brand-icon" aria-hidden="true">↗</span>
-            <span>Fluxo<span class="brand-accent">Urbano</span></span>
+            <span>Fluxo<span class="brand-accent"> ST</span></span>
         </a>
+        {% if current_user.is_authenticated %}
+            <a class="button button-quiet button-small" href="{{ url_for('site.public_home') }}">Site público</a>
+        {% elif request.endpoint == 'auth.registro' %}
+            <a class="button button-quiet button-small" href="{{ url_for('auth.login', next=request.args.get('next')) }}">Já tenho conta</a>
+        {% else %}
+            <a class="button button-quiet button-small" href="{{ url_for('auth.registro') }}">Cadastre-se</a>
+        {% endif %}
         {% if current_user.is_authenticated %}
             <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Abrir menu">☰</button>
             <nav class="primary-nav" id="primary-nav" aria-label="Navegação principal">
                 <a href="{{ url_for('main.dashboard') }}">Painel</a>
                 <a href="{{ url_for('cruzamentos.listar') }}">Cruzamentos</a>
+                {% if current_user.cargo == 'Administrador' %}
+                    <a href="{{ url_for('publicacoes.listar') }}">Atualizações</a>
+                {% endif %}
                 {% if current_user.cargo in ['Administrador', 'Engenheiro'] %}
                     <a href="{{ url_for('relatorios.index') }}">Relatórios</a>
                 {% endif %}

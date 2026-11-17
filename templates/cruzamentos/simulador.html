@@ -22,7 +22,7 @@
     <button class="button button-quiet" id="toggle-intersection" type="button" aria-pressed="{{ 'true' if cruzamento.tipo_intersecao == 'Rotatoria' else 'false' }}">{{ 'Trocar para semáforo' if cruzamento.tipo_intersecao == 'Rotatoria' else 'Trocar para rotatória' }}</button>
     <div class="signal-indicator" aria-live="polite"><span class="signal-indicator-light" id="signal-indicator-light"></span><span id="signal-state">Leste–Oeste liberado · Norte–Sul aguardando</span></div>
 </section>
-<p class="form-note simulator-timing-note">Os tempos são segundos simulados. O ciclo é acelerado em 3× para facilitar a observação; amarelo e intervalo de segurança entre fluxos são adicionados automaticamente.</p>
+<p class="form-note simulator-timing-note">Os tempos são segundos simulados. O ciclo é acelerado em 3×; no amarelo, a parada considera a distância de frenagem, e o intervalo de segurança espera o cruzamento ser liberado.</p>
 
 <section class="comparison-grid" aria-label="Comparação de cenários da simulação">
     <article class="scene-card">
@@ -41,7 +41,7 @@
         <article class="hud-card"><span>Congestionamento</span><strong id="hud-congestion" class="badge badge-{{ cruzamento.congestionamento|lower }}">{{ cruzamento.congestionamento }}</strong></article>
         <article class="hud-card"><span>Veículos por minuto</span><strong><span id="hud-vehicles">{{ cruzamento.veiculos_minuto }}</span></strong></article>
     </div>
-    <div class="simulator-actions"><p class="form-note" id="simulation-status" role="status">Representação educativa: motoristas na rotatória têm preferência; nas aproximações, os veículos reduzem e aguardam uma brecha segura.</p><button class="button" id="save-simulation" type="button">Salvar resultados</button></div>
+    <div class="simulator-actions"><p class="form-note" id="simulation-status" role="status">Representação educativa: veículos respeitam o semáforo, desaceleram antes da faixa e mantêm distância; na rotatória, cedem passagem a quem já circula e aguardam uma brecha segura.</p><button class="button" id="save-simulation" type="button">Salvar resultados</button></div>
 </section>
 <script>
     window.SIMULATION_CONFIG = {

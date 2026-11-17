@@ -49,7 +49,8 @@ def login():
 @auth_bp.route("/registro", methods=["GET", "POST"])
 def registro():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        destino = _safe_local_target(request.args.get("next"))
+        return redirect(destino or url_for("main.dashboard"))
 
     if request.method == "POST":
         nome = request.form.get("nome", "").strip()
@@ -86,7 +87,8 @@ def registro():
 
         login_user(usuario)
         flash("Cadastro realizado. Bem-vindo ao sistema.", "success")
-        return redirect(url_for("main.dashboard"))
+        destino = _safe_local_target(request.args.get("next"))
+        return redirect(destino or url_for("main.dashboard"))
 
     return render_template("auth/registro.html")
 

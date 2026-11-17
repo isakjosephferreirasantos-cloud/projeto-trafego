@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#181c20">
+    <meta name="description" content="Propostas colaborativas para melhorar a mobilidade, os cruzamentos e a segurança viária em Serra Talhada, Pernambuco.">
+    <title>Fluxo ST — Mobilidade em Serra Talhada</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <style>
+        :root {
+            color-scheme: dark;
+            --ink: #edf2ee;
+            --muted: #a4b0aa;
+            --paper: #181c20;
+            --white: #252c34;
+            --green: #2ecc71;
+            --green-dark: #104c36;
+            --lime: #d7ed79;
+            --orange: #e27546;
+            --blue: #4774d2;
+            --line: #343d45;
+            font-family: "DM Sans", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; background: var(--paper); color: var(--ink); }
+        a { color: inherit; }
+        button, input, textarea { font: inherit; }
+        button { cursor: pointer; }
+        .shell { width: min(1200px, calc(100% - 48px)); margin: 0 auto; }
+        .topbar { display: flex; min-height: 78px; align-items: center; justify-content: space-between; gap: 24px; border-bottom: 1px solid var(--line); }
+        .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; font-family: "Space Grotesk", sans-serif; font-size: 15px; font-weight: 700; letter-spacing: -.04em; }
+        .brand-mark { display: grid; width: 35px; height: 35px; place-items: center; border-radius: 12px; background: var(--green); color: white; font-size: 19px; }
+        .nav-links { display: flex; align-items: center; gap: 27px; }
+        .nav-links a { color: #435149; font-size: 13px; font-weight: 600; text-decoration: none; }
+        .nav-links a:hover { color: var(--green); }
+        .nav-links .site-link, .nav-links .admin-link { padding: 10px 14px; border: 1px solid var(--line); border-radius: 999px; }
+        .hero { display: grid; min-height: 510px; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 34px; padding: 76px 0 70px; }
+        .eyebrow { display: flex; align-items: center; gap: 9px; margin: 0 0 20px; color: var(--green); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+        .eyebrow::before { width: 23px; height: 2px; background: currentColor; content: ""; }
+        h1, h2, h3, p { margin-top: 0; }
+        h1, h2, h3 { font-family: "Space Grotesk", sans-serif; letter-spacing: -.055em; }
+        h1 { max-width: 630px; margin-bottom: 22px; font-size: clamp(52px, 7vw, 88px); font-weight: 600; line-height: .98; }
+        h1 span { color: var(--green); }
+        .hero-copy { max-width: 490px; margin-bottom: 29px; color: var(--muted); font-size: 17px; line-height: 1.7; }
+        .button { display: inline-flex; min-height: 48px; align-items: center; justify-content: center; gap: 15px; padding: 0 19px; border: 0; border-radius: 7px; background: var(--green); color: white; font-size: 13px; font-weight: 700; text-decoration: none; transition: background .2s, transform .2s; }
+        .button:hover { transform: translateY(-2px); background: var(--green-dark); }
+        .button.secondary { border: 1px solid var(--line); background: white; color: var(--ink); }
+        .hero-art { position: relative; min-height: 340px; overflow: hidden; border-radius: 22px; background: #dce8d8; }
+        .hero-art::before, .hero-art::after { display: none; }
+        #hero-city-map { position: absolute; inset: 0; }
+        .hero-art .leaflet-control-attribution { border-radius: 5px; background: rgba(255,255,255,.9) !important; color: #34443b !important; }
+        .hero-art .leaflet-control-attribution a { color: #176b4b !important; }
+        .route-label { position: absolute; z-index: 1; display: flex; align-items: center; gap: 9px; padding: 10px 13px; border: 1px solid rgba(21,35,29,.08); border-radius: 9px; background: rgba(255,255,255,.94); box-shadow: 0 8px 26px rgba(21,35,29,.1); font-size: 11px; font-weight: 700; }
+        .route-label::before { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); content: ""; }
+        .route-one { top: 24%; left: 11%; }
+        .route-two { right: 9%; bottom: 20%; }
+        .art-caption { position: absolute; z-index: 1; right: 18px; bottom: 16px; color: #58665b; font-size: 10px; }
+        .hero-note { display: flex; align-items: flex-start; gap: 10px; margin-top: 23px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+        .hero-note strong { color: var(--ink); }
+        .mini-stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 0 0 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+        .mini-stat { padding: 23px 20px 23px 0; }
+        .mini-stat + .mini-stat { padding-left: 22px; border-left: 1px solid var(--line); }
+        .mini-stat strong { display: block; margin-bottom: 6px; font-family: "Space Grotesk", sans-serif; font-size: 22px; letter-spacing: -.04em; }
+        .mini-stat span { color: var(--muted); font-size: 11px; }
+        .section { padding: 92px 0; }
+        .section-heading { display: flex; align-items: end; justify-content: space-between; gap: 28px; margin-bottom: 29px; }
+        .section-heading h2 { max-width: 570px; margin: 0; font-size: clamp(34px, 5vw, 55px); line-height: 1.04; }
+        .section-heading > p { max-width: 400px; margin: 0; color: var(--muted); font-size: 14px; line-height: 1.65; }
+        .map-section { background: #e9eee7; }
+        .map-shell { display: grid; grid-template-columns: 1fr 340px; gap: 18px; }
+        .map-card, .point-panel { overflow: hidden; border: 1px solid #d7ded4; border-radius: 13px; background: white; }
+        #city-map { min-height: 520px; background: #e4ecdf; }
+        .map-placeholder { display: grid; min-height: 520px; place-items: center; padding: 30px; color: var(--muted); text-align: center; }
+        .map-legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 13px 17px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
+        .legend-item { display: flex; align-items: center; gap: 7px; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); }
+        .legend-dot.blue { background: var(--blue); }
+        .legend-dot.green { background: var(--green); }
+        .point-panel { padding: 19px; }
+        .panel-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+        .panel-top h3 { margin: 0; font-size: 18px; }
+        .point-count { color: var(--muted); font-size: 10px; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 13px; }
+        .filter-button { padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; background: white; color: #526056; font-size: 10px; font-weight: 700; }
+        .filter-button[aria-pressed="true"] { border-color: var(--green); background: var(--green); color: white; }
+        .point-list { display: grid; gap: 8px; }
+        .point-button { display: grid; width: 100%; grid-template-columns: 27px 1fr auto; align-items: start; gap: 10px; padding: 12px 9px; border: 1px solid transparent; border-radius: 8px; background: #f7f8f5; color: var(--ink); text-align: left; }
+        .point-button:hover, .point-button[aria-current="true"] { border-color: #b7d0bc; background: #edf5ed; }
+        .point-number { display: grid; width: 25px; height: 25px; place-items: center; border-radius: 50%; background: #f8e6db; color: #a74d27; font-size: 10px; font-weight: 700; }
+        .point-button[data-type="tempo"] .point-number { background: #e5ebfa; color: #3459a8; }
+        .point-button[data-type="seguranca"] .point-number { background: #e1efe4; color: var(--green); }
+        .point-text strong { display: block; margin-bottom: 3px; font-size: 11px; }
+        .point-text small { display: block; color: var(--muted); font-size: 10px; line-height: 1.45; }
+        .point-text small + small { margin-top: 4px; }
+        .point-arrow { color: var(--muted); font-size: 15px; }
+        .map-disclaimer { margin: 13px 2px 1px; color: #707b72; font-size: 10px; line-height: 1.55; }
+        .ideas-section { background: var(--paper); }
+        .idea-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+        .idea-card { min-height: 230px; padding: 24px; border: 1px solid var(--line); border-radius: 11px; background: white; }
+        .idea-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 26px; }
+        .idea-icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 11px; background: #e9f2e9; color: var(--green); font-size: 18px; }
+        .idea-card:nth-child(2) .idea-icon { background: #f9ece4; color: #ba5b34; }
+        .idea-card:nth-child(3) .idea-icon { background: #e8edfa; color: #4767b5; }
+        .idea-index { color: #8b948b; font-family: "Space Grotesk", sans-serif; font-size: 11px; }
+        .idea-card h3 { margin-bottom: 9px; font-size: 21px; }
+        .idea-card p { margin-bottom: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+        .simulation { display: grid; grid-template-columns: 1fr 330px; gap: 32px; align-items: center; padding: 30px; border-radius: 14px; background: var(--green-dark); color: white; }
+        .simulation .eyebrow { color: var(--lime); }
+        .simulation h2 { max-width: 500px; margin-bottom: 12px; font-size: clamp(30px, 4vw, 42px); line-height: 1.06; }
+        .simulation-copy { max-width: 520px; margin-bottom: 0; color: rgba(255,255,255,.76); font-size: 13px; line-height: 1.7; }
+        .sim-control { padding: 20px; border: 1px solid rgba(255,255,255,.19); border-radius: 10px; background: rgba(255,255,255,.08); }
+        .sim-label { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 14px; color: rgba(255,255,255,.8); font-size: 11px; }
+        .sim-label output { color: var(--lime); font-size: 15px; font-weight: 700; }
+        input[type="range"] { width: 100%; accent-color: var(--lime); }
+        .sim-result { display: flex; align-items: baseline; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.2); }
+        .sim-result strong { color: var(--lime); font-family: "Space Grotesk", sans-serif; font-size: 28px; }
+        .sim-result span { max-width: 150px; color: rgba(255,255,255,.75); font-size: 10px; text-align: right; }
+        .sim-warning { margin: 14px 0 0; color: rgba(255,255,255,.58); font-size: 10px; line-height: 1.5; }
+        .traffic-sim-3d { margin-top: 48px; }
+        .traffic-sim-toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; margin-bottom: 12px; }
+        .traffic-sim-control { padding: 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); }
+        .traffic-sim-control label { display: flex; justify-content: space-between; gap: 9px; margin-bottom: 10px; color: var(--muted); font-size: 11px; }
+        .traffic-sim-control output { color: var(--lime); font-weight: 700; }
+        .traffic-sim-control select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+        .traffic-sim-wave { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); color: var(--muted); font-size: 11px; }
+        .traffic-sim-wave input { accent-color: var(--green); }
+        .traffic-sim-signal { grid-column: 1 / -1; display: flex; align-items: center; gap: 9px; min-height: 38px; color: var(--muted); font-size: 12px; }
+        .traffic-sim-signal-light { width: 12px; height: 12px; flex: 0 0 12px; border-radius: 50%; background: #e94e4e; box-shadow: 0 0 12px rgba(233,78,78,.4); }
+        .traffic-sim-signal-light[data-phase$="-green"] { background: #2ecc71; box-shadow: 0 0 12px rgba(46,204,113,.45); }
+        .traffic-sim-signal-light[data-phase$="-yellow"] { background: #ffc247; box-shadow: 0 0 12px rgba(255,194,71,.45); }
+        .traffic-sim-selected { margin: 0 0 6px; color: var(--ink); font-size: 12px; font-weight: 600; }
+        .traffic-sim-note { margin: 0 0 14px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+        .traffic-sim-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+        .traffic-sim-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: var(--white); }
+        .traffic-sim-heading { display: flex; align-items: center; gap: 10px; padding: 15px 17px; }
+        .traffic-sim-heading span { color: var(--green); font-size: 10px; font-weight: 700; letter-spacing: .12em; }
+        .traffic-sim-heading h3 { margin: 0; font-size: 16px; }
+        .traffic-sim-card .scene-canvas { position: relative; height: clamp(260px, 31vw, 380px); overflow: hidden; background: #20272e; }
+        .traffic-sim-card .scene-canvas canvas { display: block; width: 100%; height: 100%; }
+        .traffic-sim-card .scene-canvas-fallback { display: grid; height: 100%; min-height: 260px; place-items: center; padding: 24px; color: var(--muted); font-size: 13px; text-align: center; }
+        .traffic-sim-status { margin: 12px 0 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+        .process { background: white; }
+        .process-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 35px; }
+        .process-step { padding: 0 20px; border-left: 1px solid var(--line); }
+        .process-step:first-child { padding-left: 0; border-left: 0; }
+        .process-step span { display: block; margin-bottom: 16px; color: var(--green); font-family: "Space Grotesk", sans-serif; font-size: 12px; font-weight: 700; }
+        .process-step h3 { margin-bottom: 8px; font-size: 17px; }
+        .process-step p { margin-bottom: 0; color: var(--muted); font-size: 11px; line-height: 1.65; }
+        .posts-section { padding-top: 65px; background: #e9eee7; }
+        .post-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; }
+        .public-post { padding: 19px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+        .public-post time { color: var(--muted); font-size: 10px; }
+        .public-post h3 { margin: 10px 0 7px; font-size: 17px; }
+        .public-post p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; white-space: pre-wrap; }
+        .footer { padding: 26px 0; border-top: 1px solid var(--line); background: #e9eee7; }
+        .footer-inner { display: flex; justify-content: space-between; gap: 20px; color: var(--muted); font-size: 10px; line-height: 1.6; }
+        .footer a { color: var(--green); }
+        .admin-section { min-height: 100vh; padding: 25px 0 70px; }
+        .admin-section[hidden] { display: none; }
+        body.admin-view > .shell, body.admin-view > main { display: none; }
+        body.admin-view .admin-section { display: block; }
+        .admin-topbar, .admin-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+        .admin-topbar { padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+        .admin-actions { color: var(--muted); font-size: 12px; }
+        .admin-actions button, .admin-post-card button { padding: 8px 11px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--ink); font-size: 11px; font-weight: 700; }
+        .admin-panel { max-width: 980px; margin: 45px auto; }
+        .admin-panel h1 { margin-top: 38px; font-size: 42px; }
+        .admin-form, .admin-post-card, .admin-location-card, .admin-overview-card, .admin-guide-card { padding: 20px; border: 1px solid var(--line); border-radius: 9px; background: white; }
+        .admin-intro, .admin-section-intro { max-width: 720px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+        .admin-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 22px 0 42px; }
+        .admin-overview-card { display: grid; gap: 8px; text-align: left; color: var(--ink); cursor: pointer; transition: transform .18s ease, border-color .18s ease; }
+        .admin-overview-card:hover { transform: translateY(-2px); border-color: var(--green); }
+        .admin-overview-card span, .admin-overview-card small { color: var(--muted); font-size: 11px; }
+        .admin-overview-card strong { font-family: "Space Grotesk", sans-serif; font-size: 25px; }
+        .admin-dashboard-section { margin-top: 46px; scroll-margin-top: 24px; }
+        .admin-dashboard-section > h2 { margin-bottom: 5px; font-size: 25px; }
+        .admin-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 14px; }
+        .admin-form-grid .wide { grid-column: 1 / -1; }
+        .admin-location-list { display: grid; gap: 10px; margin-top: 18px; }
+        .admin-location-card h3 { margin: 0 0 8px; }
+        .admin-location-card p { margin: 5px 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+        .admin-location-card .admin-actions { justify-content: flex-start; margin-top: 12px; }
+        .admin-location-card .admin-actions button { padding: 8px 11px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--ink); font-size: 11px; font-weight: 700; }
+        .admin-guide-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+        .admin-guide-card { padding: 16px; }
+        .admin-guide-card strong { display: block; margin-bottom: 7px; }
+        .admin-guide-card p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+        .admin-form label, .admin-login-form label { display: block; margin: 14px 0 6px; color: #48564d; font-size: 11px; font-weight: 700; }
+        .admin-input { width: 100%; min-height: 42px; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--ink); }
+        textarea.admin-input { min-height: 120px; resize: vertical; }
+        .admin-status { color: var(--muted); font-size: 11px; }
+        .admin-posts { display: grid; gap: 10px; margin-top: 18px; }
+        .admin-post-card h3 { margin: 10px 0; }
+        .admin-post-card p { color: var(--muted); font-size: 12px; white-space: pre-wrap; }
+        .admin-post-card .admin-actions { justify-content: flex-start; }
+        .admin-user-section { margin-top: 42px; }
+        .admin-users { display: grid; gap: 9px; margin-top: 16px; }
+        .admin-user-card { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(180px, 1.4fr) auto auto; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); font-size: 12px; }
+        .admin-user-card span, .admin-user-card time { color: var(--muted); }
+        .admin-user-card .user-status { color: var(--green); font-weight: 700; }
+        .admin-user-card .user-status.inactive { color: #b94a48; }
+        .admin-presence-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; color: var(--muted); font-size: 11px; }
+        .admin-presence-pagination { display: flex; align-items: center; gap: 8px; }
+        .admin-presence-pagination button { padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--white); color: var(--ink); font-size: 11px; font-weight: 700; }
+        .admin-presence-pagination button:disabled { cursor: not-allowed; opacity: .5; }
+        .admin-presence-card { display: grid; grid-template-columns: minmax(160px, 1fr) minmax(120px, .7fr) minmax(170px, 1fr); align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 9px; background: var(--white); font-size: 12px; }
+        .admin-presence-card span, .admin-presence-card time { color: var(--muted); }
+        .admin-login-dialog { width: min(420px, calc(100% - 30px)); padding: 25px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink); }
+        .admin-login-dialog::backdrop { background: rgba(11,26,19,.58); }
+        .admin-login-dialog h2 { margin: 0 0 20px; font-size: 28px; }
+        .dialog-actions { display: flex; gap: 9px; margin-top: 16px; }
+        .admin-cancel { padding: 0 13px; border: 1px solid var(--line); border-radius: 6px; background: white; color: var(--ink); }
+        [hidden] { display: none !important; }
+        .leaflet-popup-content-wrapper { border-radius: 8px; }
+        .map-popup strong { display: block; margin-bottom: 4px; font-family: "DM Sans", sans-serif; }
+        .map-popup span { color: #65736b; font-size: 11px; line-height: 1.45; }
+        .nav-links a { color: #c4cec7; }
+        .hero-art { background: #293d34; }
+        .route-label { border-color: #3b454d; background: rgba(37,44,52,.96); }
+        .art-caption { color: #d0dacd; }
+        .map-section, .posts-section, .footer { background: #1e242b; }
+        .map-card, .point-panel, .idea-card, .process, .public-post,
+        .admin-form, .admin-post-card, .admin-location-card, .admin-overview-card, .admin-guide-card, .admin-login-dialog { border-color: var(--line); background: var(--white); }
+        #city-map, .map-placeholder { background: #252c34; }
+        .leaflet-control-zoom a, .leaflet-control-attribution { border-color: var(--line) !important; background: #252c34 !important; color: var(--ink) !important; }
+        .filter-button, .admin-actions button, .admin-post-card button, .admin-location-card .admin-actions button, .admin-cancel { border-color: var(--line); background: #252c34; color: var(--ink); }
+        .filter-button { color: #c8d1cb; }
+        .point-button { background: #1e242b; color: var(--ink); }
+        .point-button:hover, .point-button[aria-current="true"] { border-color: #347d50; background: #20372a; }
+        .point-number { background: #493328; color: #ffad83; }
+        .point-button[data-type="tempo"] .point-number { background: #2b3650; color: #b6c8ff; }
+        .point-button[data-type="seguranca"] .point-number { background: #203c2c; color: #8de5ac; }
+        .map-disclaimer, .map-popup span { color: #a4b0aa; }
+        .idea-icon { background: #203c2c; }
+        .idea-card:nth-child(2) .idea-icon { background: #493328; color: #ffad83; }
+        .idea-card:nth-child(3) .idea-icon { background: #2b3650; color: #b6c8ff; }
+        .idea-index { color: #a4b0aa; }
+        .process { background: #1e242b; }
+        .footer a { color: #5ee28f; }
+        .admin-form label, .admin-login-form label { color: #c4cec7; }
+        .admin-input { border-color: var(--line); background: #181c20; color: var(--ink); }
+        .admin-login-dialog { color: var(--ink); color-scheme: dark; }
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #252c34; color: var(--ink); }
+        .leaflet-popup-content-wrapper { border: 1px solid var(--line); }
+        @media (max-width: 850px) {
+            .nav-links { gap: 14px; }
+            .nav-links a { font-size: 11px; }
+            .admin-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .admin-guide-grid { grid-template-columns: 1fr; }
+            .hero { grid-template-columns: 1fr 1fr; gap: 22px; }
+            .map-shell { grid-template-columns: 1fr; }
+            .point-panel { order: -1; }
+            .point-list { grid-template-columns: repeat(2, 1fr); }
+            .simulation { grid-template-columns: 1fr; }
+            .traffic-sim-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 620px) {
+            .shell { width: min(100% - 32px, 1200px); }
+            .admin-panel { margin: 28px auto; }
+            .admin-panel h1 { font-size: 34px; }
+            .admin-form-grid { grid-template-columns: 1fr; }
+            .admin-form-grid .wide { grid-column: auto; }
+            .admin-user-card { grid-template-columns: 1fr 1fr; overflow-wrap: anywhere; }
+            .admin-presence-card { grid-template-columns: 1fr; overflow-wrap: anywhere; }
+            .admin-presence-toolbar { align-items: flex-start; flex-direction: column; }
+            .topbar { min-height: 68px; }
+            .nav-links { gap: 9px; }
+            .nav-links a:not(.admin-link):not(.site-link) { display: none; }
+            .hero { min-height: initial; grid-template-columns: 1fr; padding: 64px 0 46px; }
+            h1 { font-size: clamp(51px, 14vw, 75px); }
+            .hero-art { min-height: 260px; }
+            .mini-stats { grid-template-columns: 1fr; }
+            .mini-stat, .mini-stat + .mini-stat { padding: 14px 0; border-left: 0; }
+            .mini-stat + .mini-stat { border-top: 1px solid var(--line); }
+            .section { padding: 65px 0; }
+            .section-heading { align-items: flex-start; flex-direction: column; gap: 13px; }
+            .point-list, .idea-grid, .post-grid { grid-template-columns: 1fr; }
+            #city-map, .map-placeholder { min-height: 400px; }
+            .simulation { padding: 22px; }
+            .traffic-sim-toolbar { grid-template-columns: 1fr; }
+            .traffic-sim-wave { grid-column: auto; }
+            .traffic-sim-card .scene-canvas, .traffic-sim-card .scene-canvas-fallback { height: 280px; min-height: 280px; }
+            .process-grid { grid-template-columns: 1fr 1fr; gap: 24px 0; }
+            .process-step:nth-child(odd) { padding-left: 0; border-left: 0; }
+            .footer-inner { flex-direction: column; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            *, *::before, *::after { transition-duration: .01ms !important; }
+        }
+        body { background: radial-gradient(ellipse at 50% -20%, rgba(46,204,113,.09), transparent 42rem), var(--paper); }
+        .topbar { position: sticky; top: 0; z-index: 20; background: rgba(24,28,32,.9); backdrop-filter: blur(16px); }
+        .brand-mark { box-shadow: 0 7px 20px rgba(46,204,113,.24); }
+        .hero-art { border: 1px solid rgba(255,255,255,.08); box-shadow: 0 24px 70px rgba(0,0,0,.2); }
+        .route-label { border-color: rgba(255,255,255,.12); background: rgba(26,34,32,.9); box-shadow: 0 12px 30px rgba(0,0,0,.22); backdrop-filter: blur(10px); }
+        .art-caption { right: 16px; bottom: 14px; max-width: calc(100% - 32px); padding: 8px 11px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; background: rgba(18,28,23,.84); color: #e4eee6; font-size: 11px; }
+        .button { border-radius: 999px; box-shadow: 0 8px 22px rgba(46,204,113,.18); }
+        .button:hover { box-shadow: 0 12px 26px rgba(46,204,113,.26); }
+        .button:focus-visible, .nav-links a:focus-visible, .traffic-sim-control select:focus-visible, .filter-button:focus-visible, .point-button:focus-visible { outline: 3px solid var(--lime); outline-offset: 3px; }
+        .map-card, .point-panel, .idea-card, .public-post { border-radius: 16px; box-shadow: 0 14px 36px rgba(0,0,0,.14); }
+        .point-panel { padding: 22px; }
+        .idea-card { background: linear-gradient(145deg, #252c34, #20282d); transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease; }
+        .idea-card:hover { transform: translateY(-4px); border-color: #45634e; box-shadow: 0 20px 42px rgba(0,0,0,.22); }
+        .traffic-sim-3d { padding: 32px; border: 1px solid rgba(255,255,255,.08); border-radius: 20px; background: linear-gradient(145deg, rgba(38,48,53,.96), rgba(27,36,39,.96)); box-shadow: 0 24px 60px rgba(0,0,0,.18); }
+        .traffic-sim-control { border-color: rgba(255,255,255,.09); background: rgba(255,255,255,.035); }
+        .traffic-sim-control select { transition: border-color .18s ease, background .18s ease; }
+        .traffic-sim-control select:hover, .traffic-sim-control select:focus { border-color: rgba(46,204,113,.65); background: #1b2527; }
+        .traffic-sim-wave { border-color: rgba(255,255,255,.09); background: rgba(255,255,255,.035); }
+        .traffic-sim-card { border-color: rgba(255,255,255,.1); border-radius: 14px; box-shadow: 0 16px 36px rgba(0,0,0,.18); }
+        .traffic-sim-heading { min-height: 58px; }
+        .traffic-sim-status { color: #becac2; }
+        .map-section { background: linear-gradient(180deg, #1d2729, #182024); }
+        .process { background: linear-gradient(180deg, #1e242b, #192126); }
+        .footer { background: #151b1e; }
+        @media (max-width: 620px) {
+            .traffic-sim-3d { padding: 22px 16px; border-radius: 16px; }
+            .nav-links a:not(.admin-link):not(.site-link):not([href="#simulador-3d"]) { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <nav class="topbar" aria-label="Navegação principal">
+            <a class="brand" href="#inicio"><span class="brand-mark" aria-hidden="true">↗</span> FLUXO <span>ST</span></a>
+            <div class="nav-links">
+                <a href="#mapa">Mapa</a>
+                <a href="#propostas">Propostas</a>
+                <a href="#simulador-3d">Simulador 3D</a>
+                <a href="#metodo">Como funciona</a>
+                <a href="/" class="site-link">Acessar conta</a>
+                <a href="#admin" class="admin-link">Área de gestão</a>
+            </div>
+        </nav>
+    </div>
+
+    <main>
+        <header class="shell hero" id="inicio">
+            <div>
+                <p class="eyebrow">Mobilidade urbana · Serra Talhada, PE</p>
+                <h1>Fluxo <span>ST</span></h1>
+                <p class="hero-copy">Ideias para cruzamentos mais seguros e deslocamentos mais simples. Um espaço para visualizar propostas e conversar sobre o trânsito da nossa cidade.</p>
+                <a class="button" href="#mapa">Explorar o mapa <span aria-hidden="true">↘</span></a>
+                <p class="hero-note"><span aria-hidden="true">ⓘ</span><span><strong>Propostas em discussão.</strong> Cada mudança precisa de estudo técnico, dados locais e participação da comunidade.</span></p>
+            </div>
+            <div class="hero-art" role="img" aria-label="Mapa de Serra Talhada, Pernambuco">
+                <div id="hero-city-map" aria-hidden="true"></div>
+                <span class="route-label route-one">Serra Talhada · Pernambuco</span>
+                <span class="route-label route-two">4 pontos para estudo</span>
+                <span class="art-caption">Mapa urbano · OpenStreetMap</span>
+            </div>
+        </header>
+
+        <section class="shell mini-stats" aria-label="Resumo do projeto">
+            <div class="mini-stat"><strong>4 pontos</strong><span>ilustrativos no mapa para iniciar a conversa</span></div>
+            <div class="mini-stat"><strong>3 frentes</strong><span>cruzamentos, semáforos e segurança viária</span></div>
+            <div class="mini-stat"><strong>Próximo passo</strong><span>medir antes de propor qualquer mudança</span></div>
+        </section>
+
+        <section class="section map-section" id="mapa" aria-labelledby="map-title">
+            <div class="shell">
+                <div class="section-heading">
+                    <div><p class="eyebrow">Olhar para a cidade</p><h2 id="map-title">Onde investigar semáforos e rotatórias?</h2></div>
+                    <p>Os pontos indicam aspectos para investigar, como filas, tempos semafóricos e adequação de rotatórias. São referências ilustrativas, não problemas confirmados.</p>
+                </div>
+                <div class="map-shell">
+                    <div class="map-card">
+                        <div id="city-map" role="application" aria-label="Mapa interativo de Serra Talhada com pontos ilustrativos para investigar semáforos e rotatórias"></div>
+                        <div class="map-legend" aria-label="Legenda do mapa">
+                            <span class="legend-item"><span class="legend-dot"></span>Rotatória a avaliar</span>
+                            <span class="legend-item"><span class="legend-dot blue"></span>Semáforo a avaliar</span>
+                            <span class="legend-item"><span class="legend-dot green"></span>Segurança viária</span>
+                        </div>
+                    </div>
+                    <aside class="point-panel" aria-label="Pontos de atenção ilustrativos">
+                        <div class="panel-top"><h3>Pontos de atenção</h3><span class="point-count">4 locais</span></div>
+                        <div class="filter-row" role="group" aria-label="Filtrar pontos do mapa">
+                            <button class="filter-button" type="button" data-filter="todos" aria-pressed="true">Todos</button>
+                            <button class="filter-button" type="button" data-filter="rotatoria" aria-pressed="false">Rotatórias</button>
+                            <button class="filter-button" type="button" data-filter="tempo" aria-pressed="false">Semáforos</button>
+                            <button class="filter-button" type="button" data-filter="seguranca" aria-pressed="false">Segurança</button>
+                        </div>
+                        <div class="point-list" id="point-list"></div>
+                        <p class="map-disclaimer">Os locais e aspectos são ilustrativos. A existência de problemas e a viabilidade de intervenções devem ser verificadas em campo por profissionais e órgãos responsáveis.</p>
+                    </aside>
+                </div>
+            </div>
+        </section>
+
+        <section class="section ideas-section" id="propostas" aria-labelledby="ideas-title">
+            <div class="shell">
+                <div class="section-heading">
+                    <div><p class="eyebrow">Caminhos possíveis</p><h2 id="ideas-title">Menos espera. Mais segurança.</h2></div>
+                    <p>Não existe solução única para todo cruzamento. A proposta começa com observação, medição e análise de quem usa a rua.</p>
+                </div>
+                <div class="idea-grid">
+                    <article class="idea-card">
+                        <div class="idea-top"><span class="idea-icon" aria-hidden="true">⟳</span><span class="idea-index">01 / CRUZAMENTOS</span></div>
+                        <h3>Avaliar rotatórias</h3>
+                        <p>Estudar conversões e circulação onde o espaço, o volume de veículos, a travessia de pedestres e a segurança permitirem.</p>
+                    </article>
+                    <article class="idea-card">
+                        <div class="idea-top"><span class="idea-icon" aria-hidden="true">◷</span><span class="idea-index">02 / SEMÁFOROS</span></div>
+                        <h3>Rever tempos</h3>
+                        <p>Medir filas por horário e ajustar os ciclos semafóricos para equilibrar os fluxos, mantendo tempo seguro para pedestres.</p>
+                    </article>
+                    <article class="idea-card">
+                        <div class="idea-top"><span class="idea-icon" aria-hidden="true">♧</span><span class="idea-index">03 / PESSOAS</span></div>
+                        <h3>Priorizar segurança</h3>
+                        <p>Considerar travessias acessíveis, visibilidade, velocidade e a circulação de pessoas a pé, de bicicleta e de transporte público.</p>
+                    </article>
+                </div>
+
+                <div class="traffic-sim-3d" id="simulador-3d" aria-labelledby="traffic-sim-title">
+                    <div class="section-heading">
+                        <div><p class="eyebrow">Simulação visual</p><h2 id="traffic-sim-title">Veja o semáforo organizar o fluxo.</h2></div>
+                        <p>Escolha um ponto do mapa e a mudança proposta. Os veículos aceleram e freiam gradualmente, mantêm distância e respeitam a sinalização; no amarelo, a parada considera a distância segura. Na rotatória, cedem passagem a quem já circula e seguem para saídas diferentes.</p>
+                    </div>
+                    <div class="traffic-sim-toolbar">
+                        <div class="traffic-sim-control">
+                            <label for="simulation-location">Local do estudo</label>
+                            <select id="simulation-location"></select>
+                        </div>
+                        <div class="traffic-sim-control">
+                            <label for="proposal-type">Mudança proposta</label>
+                            <select id="proposal-type">
+                                <option value="Semaforo">Semáforo</option>
+                                <option value="Rotatoria">Rotatória</option>
+                            </select>
+                        </div>
+                        <div class="traffic-sim-control">
+                            <label for="green-time">Verde · Leste–Oeste <output id="green-time-output">30</output> s</label>
+                            <input id="green-time" type="range" min="5" max="120" step="5" value="30">
+                        </div>
+                        <div class="traffic-sim-control">
+                            <label for="red-time">Verde · Norte–Sul <output id="red-time-output">30</output> s</label>
+                            <input id="red-time" type="range" min="5" max="120" step="5" value="30">
+                        </div>
+                        <label class="traffic-sim-wave"><input id="green-wave" type="checkbox"><span>Sincronizar onda verde</span></label>
+                        <div class="traffic-sim-signal" aria-live="polite"><span class="traffic-sim-signal-light" id="signal-indicator-light"></span><span id="signal-state">Leste–Oeste liberado · Norte–Sul parado no vermelho</span></div>
+                    </div>
+                    <p class="traffic-sim-selected" id="simulation-location-status" aria-live="polite"></p>
+                    <p class="traffic-sim-note">Tempos simulados com ciclo acelerado em 3×. Os pontos e o cruzamento 3D são ilustrativos, não representam geometria ou contagens medidas em campo.</p>
+                    <div class="traffic-sim-grid" aria-label="Comparação de cenários 3D">
+                        <article class="traffic-sim-card">
+                            <div class="traffic-sim-heading"><span>ATUAL</span><h3>Semáforo</h3></div>
+                            <div class="scene-canvas" id="scene-before" role="img" aria-label="Simulação 3D atual do cruzamento semaforizado"></div>
+                        </article>
+                        <article class="traffic-sim-card">
+                            <div class="traffic-sim-heading"><span>ALTERNATIVA</span><h3 id="after-scene-title">Cenário ajustado</h3></div>
+                            <div class="scene-canvas" id="scene-after" role="img" aria-label="Simulação 3D da alternativa de tráfego"></div>
+                        </article>
+                    </div>
+                    <p class="traffic-sim-status" id="simulation-status" role="status">Representação educativa: o fluxo atual respeita o semáforo; use os controles para comparar tempos ou testar uma rotatória.</p>
+                </div>
+
+                <div class="simulation" style="margin-top: 48px">
+                    <div>
+                        <p class="eyebrow">Simulação educativa</p>
+                        <h2>Como uma redução de espera pode parecer?</h2>
+                        <p class="simulation-copy">Ajuste o exemplo para comparar um tempo hipotético de espera com uma proposta. A conta é apenas ilustrativa — não representa medições dos semáforos da cidade.</p>
+                    </div>
+                    <div class="sim-control">
+                        <label class="sim-label" for="wait-time"><span>Espera proposta no exemplo</span><output id="wait-output" for="wait-time">45 s</output></label>
+                        <input id="wait-time" type="range" min="15" max="90" value="45" step="5">
+                        <div class="sim-result"><strong id="reduction-output">50%</strong><span>menor que a espera fictícia de 90 segundos</span></div>
+                        <p class="sim-warning">Exemplo matemático. O tempo real depende de contagens, horários, travessias e avaliação de engenharia de tráfego.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section process" id="metodo" aria-labelledby="process-title">
+            <div class="shell">
+                <div class="section-heading">
+                    <div><p class="eyebrow">Planejamento responsável</p><h2 id="process-title">Boa mudança começa com dados.</h2></div>
+                    <p>Uma intervenção viária precisa resolver um problema real sem criar outro. Este é um caminho possível para avaliar as propostas.</p>
+                </div>
+                <div class="process-grid">
+                    <article class="process-step"><span>ETAPA 01</span><h3>Observar</h3><p>Registrar filas, travessias e movimentos em horários diferentes.</p></article>
+                    <article class="process-step"><span>ETAPA 02</span><h3>Escutar</h3><p>Reunir relatos de moradores, comerciantes e pessoas que circulam.</p></article>
+                    <article class="process-step"><span>ETAPA 03</span><h3>Estudar</h3><p>Comparar alternativas com critérios técnicos e de acessibilidade.</p></article>
+                    <article class="process-step"><span>ETAPA 04</span><h3>Acompanhar</h3><p>Medir resultados e ajustar a solução depois da implantação.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section posts-section" id="publicacoes" aria-labelledby="posts-title">
+            <div class="shell">
+                <div class="section-heading">
+                    <div><p class="eyebrow">Atualizações do projeto</p><h2 id="posts-title">Novidades e publicações.</h2></div>
+                    <p>Comunicados publicados pela equipe responsável pelo site.</p>
+                </div>
+                <p id="public-post-status" class="map-disclaimer" role="status" aria-live="polite">Carregando publicações...</p>
+                <div class="post-grid" id="public-posts"></div>
+            </div>
+        </section>
+    </main>
+
+    <section class="shell admin-section" id="admin-section" aria-labelledby="admin-title" hidden>
+        <div class="admin-topbar">
+            <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">↗</span> FLUXO ST</a>
+            <div class="admin-actions"><span id="admin-email"></span><button id="admin-logout" type="button">Sair</button></div>
+        </div>
+        <div class="admin-panel">
+            <p class="eyebrow">Área restrita · Painel de gestão</p>
+            <h1 id="admin-title">Visão geral do projeto</h1>
+            <p class="admin-intro">Acompanhe o uso do site, mantenha os locais do mapa organizados e publique novidades. Use os atalhos para ir direto a cada tarefa.</p>
+            <div class="admin-overview" aria-label="Resumo administrativo">
+                <button class="admin-overview-card" type="button" data-admin-target="admin-presence-section">
+                    <span>Sessões ativas no site</span><strong id="admin-summary-presence">Carregando…</strong><small>Visitantes aparecem anonimamente; a contagem é por aba.</small>
+                </button>
+                <button class="admin-overview-card" type="button" data-admin-target="admin-locations-section">
+                    <span>Locais no mapa</span><strong id="admin-summary-locations">Carregando…</strong><small>Adicionar, corrigir ou remover pontos.</small>
+                </button>
+                <button class="admin-overview-card" type="button" data-admin-target="admin-updates-section">
+                    <span>Atualizações publicadas</span><strong id="admin-summary-posts">Carregando…</strong><small>Comunicados exibidos no site público.</small>
+                </button>
+                <button class="admin-overview-card" type="button" data-admin-target="admin-users-section">
+                    <span>Pessoas cadastradas</span><strong id="admin-summary-users">Carregando…</strong><small>Contas existentes no simulador.</small>
+                </button>
+            </div>
+
+            <section class="admin-dashboard-section" id="admin-updates-section" aria-labelledby="admin-updates-title">
+                <h2 id="admin-updates-title">Atualizações do projeto</h2>
+                <p class="admin-section-intro">Publique avisos, notícias e etapas do trabalho. O conteúdo publicado aparece na seção de novidades do site.</p>
+                <form class="admin-form" id="admin-post-form">
+                    <h3 id="admin-form-title">Nova publicação</h3>
+                    <label for="admin-post-title">Título</label>
+                    <input class="admin-input" id="admin-post-title" name="title" type="text" maxlength="120" required>
+                    <label for="admin-post-body">Texto</label>
+                    <textarea class="admin-input" id="admin-post-body" name="body" maxlength="10000" required></textarea>
+                    <label for="admin-post-image">Imagem (opcional)</label>
+                    <input class="admin-input" id="admin-post-image" name="image_url" type="url" placeholder="https://...">
+                    <p class="admin-status" id="admin-post-status" role="status" aria-live="polite"></p>
+                    <div class="admin-actions"><button class="button" id="admin-post-submit" type="submit">Publicar atualização</button><button class="admin-cancel" id="admin-cancel-edit" type="button" hidden>Cancelar edição</button></div>
+                </form>
+                <p class="admin-status" id="admin-list-status" role="status" aria-live="polite"></p>
+                <div class="admin-posts" id="admin-post-list"></div>
+            </section>
+
+            <section class="admin-dashboard-section" id="admin-locations-section" aria-labelledby="admin-locations-title">
+                <h2 id="admin-locations-title">Locais de estudo no mapa</h2>
+                <p class="admin-section-intro">Cadastre pontos para investigar. Informe coordenadas decimais do local; exemplo de Serra Talhada: latitude -7.9827, longitude -38.2894. O mapa e o simulador público serão atualizados ao recarregar a página.</p>
+                <form class="admin-form" id="admin-location-form">
+                    <h3 id="admin-location-form-title">Adicionar local</h3>
+                    <div class="admin-form-grid">
+                        <div>
+                            <label for="admin-location-title">Nome do local</label>
+                            <input class="admin-input" id="admin-location-title" name="title" type="text" maxlength="100" required>
+                        </div>
+                        <div>
+                            <label for="admin-location-place">Referência</label>
+                            <input class="admin-input" id="admin-location-place" name="place" type="text" maxlength="160" required>
+                        </div>
+                        <div>
+                            <label for="admin-location-type">O que investigar</label>
+                            <select class="admin-input" id="admin-location-type" name="type" required>
+                                <option value="rotatoria">Rotatória</option>
+                                <option value="tempo">Semáforo</option>
+                                <option value="seguranca">Segurança viária</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="admin-location-latitude">Latitude decimal</label>
+                            <input class="admin-input" id="admin-location-latitude" name="latitude" type="number" min="-90" max="90" step="any" required>
+                        </div>
+                        <div>
+                            <label for="admin-location-longitude">Longitude decimal</label>
+                            <input class="admin-input" id="admin-location-longitude" name="longitude" type="number" min="-180" max="180" step="any" required>
+                        </div>
+                        <div class="wide">
+                            <label for="admin-location-note">Descrição do que verificar em campo</label>
+                            <textarea class="admin-input" id="admin-location-note" name="note" maxlength="1000" required></textarea>
+                        </div>
+                    </div>
+                    <p class="admin-status" id="admin-location-status" role="status" aria-live="polite"></p>
+                    <div class="admin-actions"><button class="button" id="admin-location-submit" type="submit">Adicionar ao mapa</button><button class="admin-cancel" id="admin-location-cancel" type="button" hidden>Cancelar edição</button></div>
+                </form>
+                <div class="admin-location-list" id="admin-location-list"></div>
+            </section>
+
+            <section class="admin-dashboard-section" id="admin-users-section" aria-labelledby="admin-users-title">
+                <h2 id="admin-users-title">Pessoas cadastradas</h2>
+                <p class="admin-status" id="admin-users-status" role="status" aria-live="polite">Carregando cadastros...</p>
+                <div class="admin-users" id="admin-user-list"></div>
+            </section>
+            <section class="admin-dashboard-section" id="admin-presence-section" aria-labelledby="admin-presence-title">
+                <h2 id="admin-presence-title">Usuários e visitantes conectados</h2>
+                <p class="admin-status" id="admin-presence-status" role="status" aria-live="polite">Carregando sessões ativas...</p>
+                <div class="admin-presence-toolbar">
+                    <span id="admin-presence-count">— sessões ativas</span>
+                    <div class="admin-presence-pagination" aria-label="Paginação das sessões ativas">
+                        <button id="admin-presence-previous" type="button" disabled>Anterior</button>
+                        <span id="admin-presence-page">Página 1</span>
+                        <button id="admin-presence-next" type="button" disabled>Próxima</button>
+                    </div>
+                </div>
+                <div class="admin-users" id="admin-presence-list"></div>
+                <p class="map-disclaimer">Visitantes aparecem anonimamente. As sessões expiram após 5 minutos sem atividade; nenhum endereço IP ou histórico de navegação é armazenado.</p>
+            </section>
+            <section class="admin-dashboard-section" aria-labelledby="admin-guide-title">
+                <h2 id="admin-guide-title">Guia rápido</h2>
+                <div class="admin-guide-grid">
+                    <article class="admin-guide-card"><strong>1. Acompanhe</strong><p>Veja quem está usando o site. Se o serviço de presença cair, o restante do painel continua disponível.</p></article>
+                    <article class="admin-guide-card"><strong>2. Revise os locais</strong><p>Use coordenadas decimais e descreva o que precisa ser verificado. Os pontos são referências, não problemas confirmados.</p></article>
+                    <article class="admin-guide-card"><strong>3. Informe a comunidade</strong><p>Publique atualizações claras e evite apresentar estimativas ou propostas como resultados técnicos confirmados.</p></article>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <div class="shell footer-inner">
+            <span>FLUXO ST · Ideias para uma Serra Talhada que flui melhor.</span>
+            <span>Mapa © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> · As propostas são preliminares e não substituem estudos técnicos.</span>
+            <span>O monitoramento administrativo usa identificador temporário por aba, sem armazenar IP, e expira após 5 minutos sem atividade.</span>
+        </div>
+    </footer>
+
+    <dialog class="admin-login-dialog" id="admin-login-dialog" aria-labelledby="admin-login-title">
+        <h2 id="admin-login-title">Acesso da equipe</h2>
+        <form class="admin-login-form" id="admin-login-form">
+            <label for="admin-login-password">Senha do administrador</label>
+            <input class="admin-input" id="admin-login-password" name="password" type="password" autocomplete="current-password" required>
+            <p class="admin-status" id="admin-login-status" role="status" aria-live="polite"></p>
+            <div class="dialog-actions"><button class="button" type="submit">Entrar</button><button class="admin-cancel" id="admin-login-cancel" type="button">Voltar ao site</button></div>
+        </form>
+    </dialog>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        const studyPoints = __STUDY_POINTS_JSON__;
+        const typeLabels = { rotatoria: "Rotatória a avaliar", tempo: "Semáforo a avaliar", seguranca: "Segurança viária" };
+        const SERRA_TALHADA_CENTER = [-7.9827, -38.2894];
+        const MAP_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+        const MAP_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+        const pointList = document.querySelector("#point-list");
+        const filterButtons = [...document.querySelectorAll(".filter-button")];
+        let currentFilter = "todos";
+        let cityMap;
+        const mapMarkers = new Map();
+
+        function markerColor(type) {
+            return { rotatoria: "#e27546", tempo: "#4774d2", seguranca: "#176b4b" }[type];
+        }
+
+        function renderPoints() {
+            const points = studyPoints.filter((point) => currentFilter === "todos" || point.type === currentFilter);
+            pointList.replaceChildren(...points.map((point) => {
+                const button = document.createElement("button");
+                button.className = "point-button";
+                button.type = "button";
+                button.dataset.type = point.type;
+                button.dataset.pointId = point.id;
+                button.setAttribute("aria-current", "false");
+                const number = document.createElement("span");
+                number.className = "point-number";
+                number.textContent = String(point.id).padStart(2, "0");
+                const text = document.createElement("span");
+                text.className = "point-text";
+                const title = document.createElement("strong");
+                title.textContent = point.title;
+                const note = document.createElement("small");
+                note.textContent = `${typeLabels[point.type]} · ${point.place}`;
+                const concern = document.createElement("small");
+                concern.textContent = point.note;
+                text.append(title, note, concern);
+                const arrow = document.createElement("span");
+                arrow.className = "point-arrow";
+                arrow.setAttribute("aria-hidden", "true");
+                arrow.textContent = "↗";
+                button.append(number, text, arrow);
+                button.addEventListener("click", () => focusPoint(point));
+                return button;
+            }));
+            document.querySelector(".point-count").textContent = `${points.length} ${points.length === 1 ? "local" : "locais"}`;
+            document.querySelector(".route-two").textContent = `${studyPoints.length} pontos para estudo`;
+            document.querySelector(".mini-stat strong").textContent = `${studyPoints.length} pontos`;
+            if (cityMap) {
+                studyPoints.forEach((point) => {
+                    const marker = mapMarkers.get(point.id);
+                    if (currentFilter !== "todos" && point.type !== currentFilter) {
+                        cityMap.removeLayer(marker);
+                    } else if (!cityMap.hasLayer(marker)) {
+                        marker.addTo(cityMap);
+                    }
+                });
+            }
+        }
+
+        function focusPoint(point) {
+            pointList.querySelectorAll(".point-button").forEach((button) => {
+                button.setAttribute("aria-current", String(Number(button.dataset.pointId) === point.id));
+            });
+            const marker = mapMarkers.get(point.id);
+            if (cityMap && marker) {
+                cityMap.flyTo(point.coords, 16, { duration: .6 });
+                marker.openPopup();
+            }
+        }
+
+        filterButtons.forEach((button) => button.addEventListener("click", () => {
+            currentFilter = button.dataset.filter;
+            filterButtons.forEach((item) => item.setAttribute("aria-pressed", String(item === button)));
+            renderPoints();
+        }));
+
+        if (window.L) {
+            const tileOptions = {
+                maxZoom: 19,
+                attribution: MAP_ATTRIBUTION
+            };
+            const heroMap = L.map("hero-city-map", {
+                zoomControl: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                dragging: false,
+                keyboard: false
+            }).setView(SERRA_TALHADA_CENTER, 13);
+            L.tileLayer(MAP_TILES, tileOptions).addTo(heroMap);
+            studyPoints.forEach((point) => {
+                L.circleMarker(point.coords, {
+                    radius: 5, color: "#fff", weight: 2, fillColor: markerColor(point.type), fillOpacity: 1
+                }).addTo(heroMap);
+            });
+
+            cityMap = L.map("city-map").setView(SERRA_TALHADA_CENTER, 14);
+            L.tileLayer(MAP_TILES, tileOptions).addTo(cityMap);
+            studyPoints.forEach((point) => {
+                const marker = L.circleMarker(point.coords, {
+                    radius: 9, color: "#fff", weight: 3, fillColor: markerColor(point.type), fillOpacity: 1
+                }).addTo(cityMap);
+                const popup = document.createElement("div");
+                popup.className = "map-popup";
+                const title = document.createElement("strong");
+                title.textContent = point.title;
+                const note = document.createElement("span");
+                note.textContent = point.note;
+                const type = document.createElement("span");
+                type.textContent = `${typeLabels[point.type]} · ponto ilustrativo, a verificar em campo`;
+                popup.append(title, note, document.createElement("br"), type);
+                marker.bindPopup(popup);
+                marker.on("click", () => focusPoint(point));
+                mapMarkers.set(point.id, marker);
+            });
+            window.setTimeout(() => {
+                heroMap.invalidateSize();
+                cityMap.invalidateSize();
+            }, 150);
+        } else {
+            const map = document.querySelector("#city-map");
+            map.classList.add("map-placeholder");
+            map.textContent = "O mapa interativo não carregou. Verifique a conexão e tente atualizar a página.";
+        }
+        renderPoints();
+
+        const waitSlider = document.querySelector("#wait-time");
+        function updateSimulation() {
+            const proposed = Number(waitSlider.value);
+            document.querySelector("#wait-output").textContent = `${proposed} s`;
+            document.querySelector("#reduction-output").textContent = `${Math.round((90 - proposed) / 90 * 100)}%`;
+        }
+        waitSlider.addEventListener("input", updateSimulation);
+        updateSimulation();
+
+        const adminSection = document.querySelector("#admin-section");
+        const adminLoginDialog = document.querySelector("#admin-login-dialog");
+        const adminLoginForm = document.querySelector("#admin-login-form");
+        const adminLoginStatus = document.querySelector("#admin-login-status");
+        const adminPostForm = document.querySelector("#admin-post-form");
+        const adminPostTitle = document.querySelector("#admin-post-title");
+        const adminPostBody = document.querySelector("#admin-post-body");
+        const adminPostImage = document.querySelector("#admin-post-image");
+        const adminPostStatus = document.querySelector("#admin-post-status");
+        const adminPostList = document.querySelector("#admin-post-list");
+        const adminListStatus = document.querySelector("#admin-list-status");
+        const adminUserList = document.querySelector("#admin-user-list");
+        const adminUsersStatus = document.querySelector("#admin-users-status");
+        const adminPresenceList = document.querySelector("#admin-presence-list");
+        const adminPresenceStatus = document.querySelector("#admin-presence-status");
+        const adminPresenceCount = document.querySelector("#admin-presence-count");
+        const adminPresencePage = document.querySelector("#admin-presence-page");
+        const adminPresencePrevious = document.querySelector("#admin-presence-previous");
+        const adminPresenceNext = document.querySelector("#admin-presence-next");
+        const adminPostSubmit = document.querySelector("#admin-post-submit");
+        const adminFormTitle = document.querySelector("#admin-form-title");
+        const adminCancelEdit = document.querySelector("#admin-cancel-edit");
+        const adminLocationForm = document.querySelector("#admin-location-form");
+        const adminLocationTitle = document.querySelector("#admin-location-title");
+        const adminLocationPlace = document.querySelector("#admin-location-place");
+        const adminLocationType = document.querySelector("#admin-location-type");
+        const adminLocationLatitude = document.querySelector("#admin-location-latitude");
+        const adminLocationLongitude = document.querySelector("#admin-location-longitude");
+        const adminLocationNote = document.querySelector("#admin-location-note");
+        const adminLocationStatus = document.querySelector("#admin-location-status");
+        const adminLocationList = document.querySelector("#admin-location-list");
+        const adminLocationFormTitle = document.querySelector("#admin-location-form-title");
+        const adminLocationSubmit = document.querySelector("#admin-location-submit");
+        const adminLocationCancel = document.querySelector("#admin-location-cancel");
+        const adminSummaryPresence = document.querySelector("#admin-summary-presence");
+        const adminSummaryLocations = document.querySelector("#admin-summary-locations");
+        const adminSummaryPosts = document.querySelector("#admin-summary-posts");
+        const adminSummaryUsers = document.querySelector("#admin-summary-users");
+        let isAdminAuthenticated = false;
+        let editingAdminPostId = null;
+        let editingLocationId = null;
+        let adminPresencePageNumber = 1;
+        let adminPresencePollTimer = 0;
+        let adminPresenceRequestPending = false;
+
+        const presencePageLabels = {
+            inicio: "Início",
+            mapa: "Mapa",
+            propostas: "Propostas",
+            "simulador-3d": "Simulador 3D",
+            metodo: "Como funciona",
+            publicacoes: "Publicações",
+            admin: "Área de gestão"
+        };
+        const presenceSessionPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+        const presencePageIds = new Set(Object.keys(presencePageLabels));
+        let activePresencePage = presencePageIds.has(location.hash.slice(1)) ? location.hash.slice(1) : "inicio";
+        let presenceSessionId = "";
+
+        async function readApiResponse(response) {
+            const payload = await response.json();
+            if (!response.ok) throw new Error(payload.error || "Não foi possível concluir a operação.");
+            return payload;
+        }
+
+        function createPresenceSessionId() {
+            if (!window.crypto || !window.crypto.getRandomValues) return "";
+            const bytes = new Uint8Array(16);
+            window.crypto.getRandomValues(bytes);
+            bytes[6] = (bytes[6] & 15) | 64;
+            bytes[8] = (bytes[8] & 63) | 128;
+            const value = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+            return `${value.slice(0, 8)}-${value.slice(8, 12)}-${value.slice(12, 16)}-${value.slice(16, 20)}-${value.slice(20)}`;
+        }
+
+        function getPresenceSessionId() {
+            try {
+                const stored = sessionStorage.getItem("fluxo-presence-session");
+                if (stored && presenceSessionPattern.test(stored)) return stored;
+                const created = createPresenceSessionId();
+                if (created) sessionStorage.setItem("fluxo-presence-session", created);
+                return created;
+            } catch (error) {
+                return createPresenceSessionId();
+            }
+        }
+
+        function sendPresenceHeartbeat() {
+            if (!presenceSessionId || document.visibilityState === "hidden") return;
+            fetch("/api/presence/ping", {
+                method: "POST",
+                credentials: "same-origin",
+                keepalive: true,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ session_id: presenceSessionId, page: activePresencePage })
+            }).catch(() => {});
+        }
+
+        function setPresencePage(page) {
+            if (!presencePageIds.has(page) || activePresencePage === page) return;
+            activePresencePage = page;
+            sendPresenceHeartbeat();
+        }
+
+        function startPresenceHeartbeat() {
+            presenceSessionId = getPresenceSessionId();
+            window.addEventListener("hashchange", () => setPresencePage(location.hash.slice(1)));
+            if ("IntersectionObserver" in window) {
+                const sectionObserver = new IntersectionObserver((entries) => {
+                    const visibleSections = entries
+                        .filter((entry) => entry.isIntersecting && presencePageIds.has(entry.target.id))
+                        .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+                    if (visibleSections.length) setPresencePage(visibleSections[0].target.id);
+                }, { rootMargin: "-20% 0px -65% 0px", threshold: [0, 0.25, 0.5] });
+                document.querySelectorAll("main [id]").forEach((section) => {
+                    if (presencePageIds.has(section.id)) sectionObserver.observe(section);
+                });
+            }
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "visible") sendPresenceHeartbeat();
+            });
+            sendPresenceHeartbeat();
+            window.setInterval(sendPresenceHeartbeat, 60_000);
+        }
+
+        function formatPresenceDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 1) return "menos de 1 min";
+            const hours = Math.floor(minutes / 60);
+            if (hours < 1) return `${minutes} min`;
+            const remainingMinutes = minutes % 60;
+            return remainingMinutes ? `${hours} h ${remainingMinutes} min` : `${hours} h`;
+        }
+
+        function formatPresenceAge(timestamp) {
+            const seconds = Math.max(0, Math.floor(Date.now() / 1000 - timestamp));
+            if (seconds < 60) return `há ${seconds} s`;
+            return `há ${Math.floor(seconds / 60)} min`;
+        }
+
+        function renderAdminPresence(payload) {
+            adminPresenceCount.textContent = `${payload.total} ${payload.total === 1 ? "sessão ativa" : "sessões ativas"}`;
+            adminSummaryPresence.textContent = String(payload.total);
+            adminPresencePage.textContent = `Página ${payload.page} de ${payload.total_pages}`;
+            adminPresencePrevious.disabled = payload.page <= 1;
+            adminPresenceNext.disabled = payload.page >= payload.total_pages;
+            adminPresenceList.replaceChildren(...payload.sessions.map((session) => {
+                const card = document.createElement("article");
+                card.className = "admin-presence-card";
+                const label = document.createElement("strong");
+                label.textContent = session.label || "Visitante";
+                const role = document.createElement("span");
+                role.textContent = session.role === "admin" ? "Administrador" : "Visitante anônimo";
+                const page = document.createElement("span");
+                page.textContent = `Página atual: ${presencePageLabels[session.page] || "Início"}`;
+                const activity = document.createElement("time");
+                activity.dateTime = new Date(session.last_seen * 1000).toISOString();
+                activity.textContent = `Sessão ${formatPresenceDuration(session.duration_seconds)} · atividade ${formatPresenceAge(session.last_seen)}`;
+                card.append(label, role, page, activity);
+                return card;
+            }));
+            adminPresenceStatus.textContent = `Atualizado às ${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}. Sessões inativas expiram após 5 minutos.`;
+        }
+
+        async function loadAdminPresence() {
+            if (!isAdminAuthenticated || adminPresenceRequestPending || document.visibilityState === "hidden") return;
+            adminPresenceRequestPending = true;
+            try {
+                const payload = await readApiResponse(await fetch(
+                    `/api/admin/presence?page=${adminPresencePageNumber}`,
+                    { credentials: "same-origin" }
+                ));
+                if (!isAdminAuthenticated) return;
+                renderAdminPresence(payload);
+            } catch (error) {
+                if (!isAdminAuthenticated) return;
+                if (error.message.includes("Entre como administrador")) {
+                    leaveAdminView();
+                    showAdminLogin();
+                    return;
+                }
+                adminPresenceList.replaceChildren();
+                adminPresenceCount.textContent = "— sessões ativas";
+                adminSummaryPresence.textContent = "Indisponível";
+                adminPresencePage.textContent = `Página ${adminPresencePageNumber}`;
+                adminPresencePrevious.disabled = adminPresencePageNumber <= 1;
+                adminPresenceNext.disabled = true;
+                adminPresenceStatus.textContent = "Monitoramento temporariamente indisponível; o site continua funcionando normalmente.";
+            } finally {
+                adminPresenceRequestPending = false;
+            }
+        }
+
+        function startAdminPresencePolling() {
+            window.clearInterval(adminPresencePollTimer);
+            adminPresencePageNumber = 1;
+            loadAdminPresence();
+            adminPresencePollTimer = window.setInterval(() => {
+                if (document.visibilityState === "visible") loadAdminPresence();
+            }, 30_000);
+        }
+
+        function stopAdminPresencePolling() {
+            window.clearInterval(adminPresencePollTimer);
+            adminPresencePollTimer = 0;
+            adminPresenceList.replaceChildren();
+            adminPresenceCount.textContent = "— sessões ativas";
+            adminSummaryPresence.textContent = "—";
+            adminPresenceStatus.textContent = "";
+            adminPresencePageNumber = 1;
+            adminPresencePrevious.disabled = true;
+            adminPresenceNext.disabled = true;
+        }
+
+        adminPresencePrevious.addEventListener("click", () => {
+            if (adminPresencePageNumber > 1) {
+                adminPresencePageNumber -= 1;
+                loadAdminPresence();
+            }
+        });
+        adminPresenceNext.addEventListener("click", () => {
+            adminPresencePageNumber += 1;
+            loadAdminPresence();
+        });
+
+        async function loadPosts() {
+            const status = document.querySelector("#public-post-status");
+            try {
+                const payload = await readApiResponse(await fetch("/api/posts"));
+                const cards = payload.posts.map((post) => {
+                    const article = document.createElement("article");
+                    article.className = "public-post";
+                    const date = document.createElement("time");
+                    date.dateTime = post.created_at;
+                    date.textContent = new Date(post.created_at).toLocaleDateString("pt-BR", { dateStyle: "long", timeZone: "UTC" });
+                    const title = document.createElement("h3");
+                    title.textContent = post.title;
+                    const body = document.createElement("p");
+                    body.textContent = post.body;
+                    article.append(date, title, body);
+                    return article;
+                });
+                document.querySelector("#public-posts").replaceChildren(...cards);
+                status.textContent = payload.posts.length ? "" : "Ainda não há publicações.";
+            } catch (error) {
+                status.textContent = "Não foi possível carregar as publicações. Tente novamente mais tarde.";
+            }
+        }
+
+        function resetAdminPostForm() {
+            editingAdminPostId = null;
+            adminPostForm.reset();
+            adminFormTitle.textContent = "Nova publicação";
+            adminPostSubmit.textContent = "Publicar";
+            adminCancelEdit.hidden = true;
+            adminPostStatus.textContent = "";
+        }
+
+        async function loadAdminPosts() {
+            try {
+                const payload = await readApiResponse(await fetch("/api/posts", { credentials: "same-origin" }));
+                adminPostList.replaceChildren(...payload.posts.map((post) => {
+                    const article = document.createElement("article");
+                    article.className = "admin-post-card";
+                    const date = document.createElement("time");
+                    date.textContent = new Date(post.created_at).toLocaleDateString("pt-BR", { dateStyle: "long", timeZone: "UTC" });
+                    const title = document.createElement("h3");
+                    title.textContent = post.title;
+                    const body = document.createElement("p");
+                    body.textContent = post.body;
+                    const actions = document.createElement("div");
+                    actions.className = "admin-actions";
+                    const edit = document.createElement("button");
+                    edit.type = "button";
+                    edit.textContent = "Editar";
+                    edit.addEventListener("click", () => {
+                        editingAdminPostId = post.id;
+                        adminPostTitle.value = post.title;
+                        adminPostBody.value = post.body;
+                        adminPostImage.value = post.image_url;
+                        adminFormTitle.textContent = "Editar publicação";
+                        adminPostSubmit.textContent = "Salvar alterações";
+                        adminCancelEdit.hidden = false;
+                        adminPostForm.scrollIntoView({ behavior: "smooth" });
+                    });
+                    const remove = document.createElement("button");
+                    remove.type = "button";
+                    remove.textContent = "Excluir";
+                    remove.addEventListener("click", async () => {
+                        if (!window.confirm(`Excluir a publicação "${post.title}"?`)) return;
+                        try {
+                            await readApiResponse(await fetch(`/api/posts/${post.id}`, { method: "DELETE", credentials: "same-origin" }));
+                            await loadAdminPosts();
+                            await loadPosts();
+                        } catch (error) {
+                            adminListStatus.textContent = error.message;
+                        }
+                    });
+                    actions.append(edit, remove);
+                    article.append(date, title, body, actions);
+                    return article;
+                }));
+                adminListStatus.textContent = payload.posts.length ? `${payload.posts.length} publicação(ões).` : "Ainda não há publicações.";
+                adminSummaryPosts.textContent = String(payload.posts.length);
+            } catch (error) {
+                adminListStatus.textContent = error.message;
+                adminSummaryPosts.textContent = "Indisponível";
+                if (error.message.includes("Entre como administrador")) {
+                    leaveAdminView();
+                    showAdminLogin();
+                }
+            }
+        }
+
+        async function loadAdminUsers() {
+            try {
+                const payload = await readApiResponse(await fetch("/api/users", { credentials: "same-origin" }));
+                adminUserList.replaceChildren(...payload.users.map((user) => {
+                    const article = document.createElement("article");
+                    article.className = "admin-user-card";
+                    const name = document.createElement("strong");
+                    name.textContent = user.nome;
+                    const email = document.createElement("span");
+                    email.textContent = user.email;
+                    const role = document.createElement("span");
+                    role.textContent = user.cargo;
+                    const status = document.createElement("span");
+                    status.className = `user-status${user.ativo ? "" : " inactive"}`;
+                    status.textContent = user.ativo ? "Ativo" : "Inativo";
+                    const created = document.createElement("time");
+                    created.dateTime = user.criado_em;
+                    created.textContent = new Date(user.criado_em).toLocaleDateString("pt-BR", { timeZone: "UTC" });
+                    article.append(name, email, role, status, created);
+                    return article;
+                }));
+                adminUsersStatus.textContent = payload.users.length
+                    ? `${payload.users.length} pessoa(s) cadastrada(s).`
+                    : "Ainda não há pessoas cadastradas.";
+                adminSummaryUsers.textContent = String(payload.users.length);
+            } catch (error) {
+                adminUsersStatus.textContent = error.message;
+                adminSummaryUsers.textContent = "Indisponível";
+            }
+        }
+
+        function resetAdminLocationForm() {
+            editingLocationId = null;
+            adminLocationForm.reset();
+            adminLocationFormTitle.textContent = "Adicionar local";
+            adminLocationSubmit.textContent = "Adicionar ao mapa";
+            adminLocationCancel.hidden = true;
+            adminLocationStatus.textContent = "";
+        }
+
+        async function loadAdminLocations() {
+            try {
+                const payload = await readApiResponse(await fetch("/api/admin/locations", { credentials: "same-origin" }));
+                adminLocationList.replaceChildren(...payload.locations.map((location) => {
+                    const card = document.createElement("article");
+                    card.className = "admin-location-card";
+                    const title = document.createElement("h3");
+                    title.textContent = location.title;
+                    const reference = document.createElement("p");
+                    reference.textContent = `${typeLabels[location.type]} · ${location.place}`;
+                    const coordinates = document.createElement("p");
+                    coordinates.textContent = `Coordenadas: ${Number(location.latitude).toFixed(5)}, ${Number(location.longitude).toFixed(5)}`;
+                    const note = document.createElement("p");
+                    note.textContent = location.note;
+                    const actions = document.createElement("div");
+                    actions.className = "admin-actions";
+                    const edit = document.createElement("button");
+                    edit.type = "button";
+                    edit.textContent = "Editar";
+                    edit.addEventListener("click", () => {
+                        editingLocationId = location.id;
+                        adminLocationTitle.value = location.title;
+                        adminLocationPlace.value = location.place;
+                        adminLocationType.value = location.type;
+                        adminLocationLatitude.value = location.latitude;
+                        adminLocationLongitude.value = location.longitude;
+                        adminLocationNote.value = location.note;
+                        adminLocationFormTitle.textContent = "Editar local";
+                        adminLocationSubmit.textContent = "Salvar alterações";
+                        adminLocationCancel.hidden = false;
+                        adminLocationForm.scrollIntoView({ behavior: "smooth" });
+                    });
+                    const remove = document.createElement("button");
+                    remove.type = "button";
+                    remove.textContent = "Remover";
+                    remove.addEventListener("click", async () => {
+                        if (!window.confirm(`Remover "${location.title}" do mapa?`)) return;
+                        try {
+                            await readApiResponse(await fetch(`/api/admin/locations/${location.id}`, {
+                                method: "DELETE",
+                                credentials: "same-origin"
+                            }));
+                            await loadAdminLocations();
+                            adminLocationStatus.textContent = "Local removido. A mudança aparecerá no site público ao recarregar a página.";
+                        } catch (error) {
+                            adminLocationStatus.textContent = error.message;
+                        }
+                    });
+                    actions.append(edit, remove);
+                    card.append(title, reference, coordinates, note, actions);
+                    return card;
+                }));
+                adminSummaryLocations.textContent = String(payload.locations.length);
+                adminLocationStatus.textContent = payload.locations.length
+                    ? `${payload.locations.length} locais cadastrados.`
+                    : "Nenhum local cadastrado.";
+            } catch (error) {
+                adminLocationList.replaceChildren();
+                adminSummaryLocations.textContent = "Indisponível";
+                adminLocationStatus.textContent = error.message;
+                if (error.message.includes("Entre como administrador")) {
+                    leaveAdminView();
+                    showAdminLogin();
+                }
+            }
+        }
+
+        function enterAdminView(email) {
+            isAdminAuthenticated = true;
+            document.body.classList.add("admin-view");
+            adminSection.hidden = false;
+            document.querySelector("#admin-email").textContent = email;
+            adminLoginDialog.close();
+            loadAdminPosts();
+            loadAdminUsers();
+            loadAdminLocations();
+            startAdminPresencePolling();
+        }
+
+        function leaveAdminView() {
+            isAdminAuthenticated = false;
+            document.body.classList.remove("admin-view");
+            adminSection.hidden = true;
+            adminPostList.replaceChildren();
+            adminUserList.replaceChildren();
+            adminUsersStatus.textContent = "";
+            adminLocationList.replaceChildren();
+            adminSummaryPresence.textContent = "—";
+            adminSummaryLocations.textContent = "—";
+            adminSummaryPosts.textContent = "—";
+            adminSummaryUsers.textContent = "—";
+            stopAdminPresencePolling();
+            resetAdminPostForm();
+            resetAdminLocationForm();
+        }
+
+        function showAdminLogin() {
+            adminSection.hidden = true;
+            if (!adminLoginDialog.open) adminLoginDialog.showModal();
+        }
+
+        async function handleAdminRoute() {
+            if (location.hash !== "#admin") {
+                if (isAdminAuthenticated) leaveAdminView();
+                return;
+            }
+            if (isAdminAuthenticated) {
+                document.body.classList.add("admin-view");
+                adminSection.hidden = false;
+                return;
+            }
+            try {
+                const session = await readApiResponse(await fetch("/api/session", { credentials: "same-origin" }));
+                if (session.authenticated) enterAdminView(session.email);
+                else showAdminLogin();
+            } catch (error) {
+                adminLoginStatus.textContent = "Não foi possível verificar o acesso. Inicie o servidor e tente novamente.";
+                showAdminLogin();
+            }
+        }
+
+        adminLoginForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            adminLoginStatus.textContent = "Verificando acesso...";
+            try {
+                const payload = await readApiResponse(await fetch("/api/admin/login", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: document.querySelector("#admin-login-password").value })
+                }));
+                adminLoginForm.reset();
+                enterAdminView(payload.email);
+            } catch (error) {
+                adminLoginStatus.textContent = error.message;
+            }
+        });
+
+        document.querySelector("#admin-login-cancel").addEventListener("click", () => {
+            adminLoginDialog.close();
+            if (location.hash === "#admin") history.replaceState(null, "", `${location.pathname}${location.search}`);
+        });
+        adminLoginDialog.addEventListener("cancel", () => {
+            if (location.hash === "#admin") history.replaceState(null, "", `${location.pathname}${location.search}`);
+        });
+
+        adminPostForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            adminPostStatus.textContent = "Salvando publicação...";
+            try {
+                const response = await fetch(editingAdminPostId ? `/api/posts/${editingAdminPostId}` : "/api/posts", {
+                    method: editingAdminPostId ? "PUT" : "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ title: adminPostTitle.value, body: adminPostBody.value, image_url: adminPostImage.value })
+                });
+                await readApiResponse(response);
+                resetAdminPostForm();
+                adminPostStatus.textContent = "Publicação salva.";
+                await loadAdminPosts();
+                await loadPosts();
+            } catch (error) {
+                adminPostStatus.textContent = error.message;
+            }
+        });
+        adminCancelEdit.addEventListener("click", resetAdminPostForm);
+        adminLocationForm.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            adminLocationStatus.textContent = "Salvando local...";
+            const payload = {
+                title: adminLocationTitle.value,
+                place: adminLocationPlace.value,
+                type: adminLocationType.value,
+                latitude: Number(adminLocationLatitude.value),
+                longitude: Number(adminLocationLongitude.value),
+                note: adminLocationNote.value
+            };
+            try {
+                const path = editingLocationId
+                    ? `/api/admin/locations/${editingLocationId}`
+                    : "/api/admin/locations";
+                const response = await fetch(path, {
+                    method: editingLocationId ? "PUT" : "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                await readApiResponse(response);
+                resetAdminLocationForm();
+                await loadAdminLocations();
+                adminLocationStatus.textContent = "Local salvo. O site público mostrará a alteração após ser recarregado.";
+            } catch (error) {
+                adminLocationStatus.textContent = error.message;
+            }
+        });
+        adminLocationCancel.addEventListener("click", resetAdminLocationForm);
+        document.querySelectorAll("[data-admin-target]").forEach((button) => {
+            button.addEventListener("click", () => {
+                document.getElementById(button.dataset.adminTarget).scrollIntoView({ behavior: "smooth" });
+            });
+        });
+        document.querySelector("#admin-logout").addEventListener("click", async () => {
+            try {
+                await readApiResponse(await fetch("/api/admin/logout", {
+                    method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: "{}"
+                }));
+                leaveAdminView();
+                history.replaceState(null, "", `${location.pathname}${location.search}`);
+            } catch (error) {
+                adminListStatus.textContent = error.message;
+            }
+        });
+        window.addEventListener("hashchange", handleAdminRoute);
+        startPresenceHeartbeat();
+        loadPosts();
+        handleAdminRoute();
+    </script>
+    <script>
+        const simulationLocationInput = document.querySelector("#simulation-location");
+        const proposalTypeInput = document.querySelector("#proposal-type");
+        const simulationLocationStatus = document.querySelector("#simulation-location-status");
+        const proposalModes = { rotatoria: "Rotatoria", tempo: "Semaforo" };
+        studyPoints.forEach((point) => {
+            const option = document.createElement("option");
+            option.value = String(point.id);
+            option.textContent = `${point.title} — ${typeLabels[point.type]}`;
+            option.dataset.proposal = proposalModes[point.type] || "";
+            simulationLocationInput.append(option);
+        });
+        simulationLocationInput.selectedIndex = 0;
+
+        function updateSimulationLocation() {
+            const option = simulationLocationInput.selectedOptions[0];
+            if (option.dataset.proposal && proposalTypeInput.value !== option.dataset.proposal) {
+                proposalTypeInput.value = option.dataset.proposal;
+                proposalTypeInput.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+            const proposal = proposalTypeInput.selectedOptions[0].textContent;
+            simulationLocationStatus.textContent = `Local selecionado: ${option.textContent.split(" — ")[0]}. Simulação da proposta: ${proposal}.`;
+        }
+
+        simulationLocationInput.addEventListener("change", updateSimulationLocation);
+        proposalTypeInput.addEventListener("change", updateSimulationLocation);
+        if (simulationLocationInput.selectedOptions.length) {
+            updateSimulationLocation();
+        } else {
+            simulationLocationStatus.textContent = "Nenhum local de estudo está cadastrado.";
+        }
+        window.SIMULATION_CONFIG = {
+            tipo: proposalTypeInput.value,
+            tempoVerde: 30,
+            tempoVermelho: 30,
+            ondaVerde: false,
+            veiculosMinuto: 18
+        };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js'"></script>
+    <script src="/assets/simulador3d.js"></script>
+</body>
+</html>
