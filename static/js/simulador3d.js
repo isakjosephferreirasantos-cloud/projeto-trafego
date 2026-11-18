@@ -706,8 +706,9 @@
                     3.2 * car.speedFactor,
                     Math.sqrt(2 * SIGNAL_BRAKING_DECELERATION * Math.max(0, gap - safeGap))
                 );
-                let mustStopAtSignal = false;
                 const phase = world.signalPhase;
+                let mustStopAtSignal = world.mode === "Semaforo"
+                    && !(phase.axis === car.axis && phase.color === "green");
                 const isYellowForCar = world.mode === "Semaforo"
                     && phase.axis === car.axis
                     && phase.color === "yellow";
@@ -715,7 +716,6 @@
                     car.yellowStopDecision = undefined;
                 }
                 if (world.mode === "Semaforo" && car.progress <= SIGNAL_STOP_LINE) {
-                    mustStopAtSignal = phase.axis !== car.axis || phase.color === "red";
                     if (isYellowForCar) {
                         if (car.yellowStopDecision === undefined) {
                             const stoppingDistance = (car.velocity ** 2) / (2 * SIGNAL_BRAKING_DECELERATION)
@@ -747,7 +747,7 @@
                 if (
                     mustStopAtSignal
                     && previousProgress <= SIGNAL_STOP_LINE
-                    && nextProgress > SIGNAL_STOP_LINE
+                    && nextProgress >= SIGNAL_STOP_LINE
                 ) {
                     nextProgress = SIGNAL_STOP_LINE;
                     car.velocity = 0;

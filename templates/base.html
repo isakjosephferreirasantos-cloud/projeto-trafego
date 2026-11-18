@@ -11,7 +11,7 @@
 </head>
 <body>
     <header class="topbar">
-        <a class="brand" href="{{ url_for('main.dashboard') if current_user.is_authenticated else url_for('auth.login') }}">
+        <a class="brand" href="{% if current_user.is_authenticated and current_user.cargo in ['Administrador', 'Engenheiro'] %}{{ url_for('main.dashboard') }}{% elif current_user.is_authenticated %}{{ url_for('site.public_home') }}{% else %}{{ url_for('auth.login') }}{% endif %}">
             <span class="brand-icon" aria-hidden="true">↗</span>
             <span>Fluxo<span class="brand-accent"> ST</span></span>
         </a>
@@ -25,7 +25,9 @@
         {% if current_user.is_authenticated %}
             <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primary-nav" aria-label="Abrir menu">☰</button>
             <nav class="primary-nav" id="primary-nav" aria-label="Navegação principal">
-                <a href="{{ url_for('main.dashboard') }}">Painel</a>
+                {% if current_user.cargo in ['Administrador', 'Engenheiro'] %}
+                    <a href="{{ url_for('main.dashboard') }}">Painel</a>
+                {% endif %}
                 <a href="{{ url_for('cruzamentos.listar') }}">Cruzamentos</a>
                 {% if current_user.cargo == 'Administrador' %}
                     <a href="{{ url_for('publicacoes.listar') }}">Atualizações</a>

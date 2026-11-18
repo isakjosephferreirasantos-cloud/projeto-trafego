@@ -9,6 +9,7 @@ from models import Cargo, User
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+GESTAO_CARGOS = {Cargo.ADMINISTRADOR, Cargo.ENGENHEIRO}
 
 
 def _safe_local_target(target):
@@ -24,10 +25,29 @@ def _safe_local_target(target):
     return None
 
 
+def _home_for(usuario):
+    if usuario.cargo in GESTAO_CARGOS:
+        return url_for("main.dashboard")
+    return url_for("site.public_home")
+
+
+def _destination_after_auth(usuario, target):
+    destino = _safe_local_target(target)
+    if destino:
+        caminho = urlsplit(urljoin(request.host_url, destino)).path
+        if usuario.cargo not in GESTAO_CARGOS and caminho in {
+            url_for("main.dashboard"),
+            url_for("site.management_login"),
+        }:
+            return _home_for(usuario)
+        return destino
+    return _home_for(usuario)
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("main.dashboard"))
+        return redirect(_destination_after_auth(current_user, request.args.get("next")))
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().casefold()
@@ -40,8 +60,7 @@ def login():
 
         login_user(usuario, remember=request.form.get("lembrar") == "on")
         flash("Login realizado com sucesso.", "success")
-        destino = _safe_local_target(request.args.get("next"))
-        return redirect(destino or url_for("main.dashboard"))
+        return redirect(_destination_after_auth(usuario, request.args.get("next")))
 
     return render_template("auth/login.html")
 
@@ -49,8 +68,7 @@ def login():
 @auth_bp.route("/registro", methods=["GET", "POST"])
 def registro():
     if current_user.is_authenticated:
-        destino = _safe_local_target(request.args.get("next"))
-        return redirect(destino or url_for("main.dashboard"))
+        return redirect(_destination_after_auth(current_user, request.args.get("next")))
 
     if request.method == "POST":
         nome = request.form.get("nome", "").strip()
@@ -87,8 +105,7 @@ def registro():
 
         login_user(usuario)
         flash("Cadastro realizado. Bem-vindo ao sistema.", "success")
-        destino = _safe_local_target(request.args.get("next"))
-        return redirect(destino or url_for("main.dashboard"))
+        return redirect(_destination_after_auth(usuario, request.args.get("next")))
 
     return render_template("auth/registro.html")
 

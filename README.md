@@ -21,7 +21,7 @@ python seed.py
 python app.py
 ```
 
-Abra `http://127.0.0.1:5000` para ver o site público, com o mapa interativo e o simulador de tráfego. A opção **Área de gestão** leva ao login do painel Flask, disponível também em `/painel` após a autenticação. O usuário administrador inicial é `admserra@gmail.com`; a senha é definida no terminal antes de inicializar o banco. A variável é usada somente quando a conta ainda não existe. Não coloque credenciais no código nem as envie ao repositório.
+Abra `http://127.0.0.1:5000` para ver o site público, com o mapa interativo e o simulador de tráfego. A opção **Área de gestão** leva ao login do painel Flask, disponível também em `/painel` somente para Administradores e Engenheiros autenticados. O cadastro público cria uma conta de Operador para novos membros; esse perfil não acessa o painel de gestão. O usuário administrador inicial é `admserra@gmail.com`; a senha é definida no terminal antes de inicializar o banco. A variável é usada somente quando a conta ainda não existe. Não coloque credenciais no código nem as envie ao repositório.
 
 O SQLite é criado em `instance/simulador.db`, pasta ignorada pelo Git. Para acessar o simulador, entre na conta e selecione um cruzamento.
 

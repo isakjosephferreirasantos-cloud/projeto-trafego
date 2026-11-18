@@ -2,11 +2,11 @@ import json
 from datetime import timezone
 from pathlib import Path
 
-from flask import Blueprint, Response, jsonify, redirect, request, send_from_directory, url_for
+from flask import Blueprint, Response, flash, jsonify, redirect, request, send_from_directory, url_for
 from flask_login import current_user
 
 from extensions import db
-from models import Publicacao
+from models import Cargo, Publicacao
 
 
 site_bp = Blueprint("site", __name__)
@@ -93,6 +93,11 @@ def public_home():
 
 @site_bp.get("/admin")
 def management_login():
+    if current_user.is_authenticated:
+        if current_user.cargo not in {Cargo.ADMINISTRADOR, Cargo.ENGENHEIRO}:
+            flash("A área de gestão é restrita à equipe autorizada.", "error")
+            return redirect(url_for("site.public_home"))
+        return redirect(url_for("main.dashboard"))
     return redirect(url_for("auth.login", next=url_for("main.dashboard")))
 
 

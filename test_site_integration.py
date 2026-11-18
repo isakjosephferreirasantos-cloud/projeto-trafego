@@ -64,11 +64,58 @@ class PublicSiteIntegrationTests(unittest.TestCase):
         self.assertNotIn("startPresenceHeartbeat();", response.get_data(as_text=True))
         self.assertNotIn("expira após 5 minutos sem atividade", response.get_data(as_text=True))
 
+    def test_new_members_are_operators_and_cannot_access_management(self):
+        registration = self.register_user()
+        self.assertEqual(registration.status_code, 302)
+        self.assertEqual(registration.headers["Location"], "/")
+        with self.app.app_context():
+            usuario = db.session.scalar(
+                db.select(User).where(User.email == "operador@example.test")
+            )
+            self.assertEqual(usuario.cargo, Cargo.OPERADOR)
+
+        self.assertEqual(self.client.get("/painel").status_code, 403)
+        self.assertEqual(self.client.get("/admin").headers["Location"], "/")
+        registration_page = self.client.get("/auth/registro")
+        self.assertEqual(registration_page.status_code, 302)
+        self.assertEqual(registration_page.headers["Location"], "/")
+        self.client.post("/auth/logout")
+        login = self.client.post(
+            "/auth/login",
+            data={"email": "operador@example.test", "senha": "Senha-teste-123"},
+        )
+        self.assertEqual(login.status_code, 302)
+        self.assertEqual(login.headers["Location"], "/")
+
     def test_management_link_enters_flask_auth_flow(self):
         response = self.client.get("/admin")
         self.assertEqual(response.status_code, 302)
         self.assertIn("/auth/login?next=/painel", response.headers["Location"])
         self.assertEqual(self.client.get("/painel").status_code, 302)
+
+    def test_engineers_can_access_management_dashboard_without_user_list(self):
+        with self.app.app_context():
+            usuario = User(
+                nome="Engenheira Teste",
+                email="engenheira@example.test",
+                cargo=Cargo.ENGENHEIRO,
+                ativo=True,
+            )
+            usuario.definir_senha("Senha-teste-123")
+            db.session.add(usuario)
+            db.session.commit()
+
+        login = self.client.post(
+            "/auth/login",
+            data={"email": "engenheira@example.test", "senha": "Senha-teste-123"},
+        )
+        self.assertEqual(login.status_code, 302)
+        self.assertEqual(login.headers["Location"], "/painel")
+        dashboard = self.client.get("/painel")
+        self.assertEqual(dashboard.status_code, 200)
+        dashboard_html = dashboard.get_data(as_text=True)
+        self.assertIn("<h1>Engenheira Teste</h1>", dashboard_html)
+        self.assertNotIn('id="registered-users"', dashboard_html)
 
     def test_admin_can_publish_and_remove_site_updates(self):
         with self.app.app_context():
@@ -114,6 +161,14 @@ class PublicSiteIntegrationTests(unittest.TestCase):
             )
             usuario.definir_senha("Senha-teste-123")
             db.session.add(usuario)
+            pessoa = User(
+                nome="Pessoa Cadastrada",
+                email="pessoa@example.test",
+                cargo=Cargo.OPERADOR,
+                ativo=True,
+            )
+            pessoa.definir_senha("Senha-teste-123")
+            db.session.add(pessoa)
             db.session.commit()
 
         login_page = self.client.get("/auth/login")
@@ -131,6 +186,9 @@ class PublicSiteIntegrationTests(unittest.TestCase):
         dashboard_html = dashboard.get_data(as_text=True)
         self.assertIn("Site público", dashboard_html)
         self.assertIn("<h1>Admin Teste</h1>", dashboard_html)
+        self.assertIn('id="registered-users"', dashboard_html)
+        self.assertIn("Pessoa Cadastrada", dashboard_html)
+        self.assertNotIn("pessoa@example.test", dashboard_html)
         self.assertIn('href="/usuarios/"', dashboard_html)
         users_page = self.client.get("/usuarios/")
         self.assertEqual(users_page.status_code, 200)
@@ -138,12 +196,21 @@ class PublicSiteIntegrationTests(unittest.TestCase):
         self.assertIn("Admin Teste", users_page.get_data(as_text=True))
 
     def test_public_site_dependencies_are_served(self):
+        with self.app.app_context():
+            administrador = User(
+                nome="Nome Restrito",
+                email="privado@example.test",
+                cargo=Cargo.ADMINISTRADOR,
+                ativo=True,
+            )
+            administrador.definir_senha("Senha-teste-123")
+            db.session.add(administrador)
+            db.session.commit()
+
         self.register_user()
         self.assertEqual(self.client.get("/publicacoes/").status_code, 403)
         self.assertEqual(self.client.get("/usuarios/").status_code, 403)
-        dashboard = self.client.get("/painel")
-        self.assertEqual(dashboard.status_code, 200)
-        self.assertNotIn('href="/usuarios/"', dashboard.get_data(as_text=True))
+        self.assertEqual(self.client.get("/painel").status_code, 403)
         response = self.client.get("/assets/simulador3d.js")
         self.assertEqual(response.status_code, 200)
         response.close()
