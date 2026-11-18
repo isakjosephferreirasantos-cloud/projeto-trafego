@@ -34,7 +34,7 @@
                     <a href="{{ url_for('relatorios.index') }}">Relatórios</a>
                 {% endif %}
                 {% if current_user.cargo == 'Administrador' %}
-                    <a href="{{ url_for('usuarios.listar') }}">Usuários</a>
+                    <a href="{{ url_for('usuarios.listar') }}">Pessoas cadastradas</a>
                 {% endif %}
                 <span class="nav-user">{{ current_user.nome }} <small>{{ current_user.cargo }}</small></span>
                 <form action="{{ url_for('auth.logout') }}" method="post" class="logout-form">

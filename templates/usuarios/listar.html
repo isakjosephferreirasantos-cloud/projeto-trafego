@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Usuários · Simulador de Fluxo Urbano{% endblock %}
+{% block title %}Pessoas cadastradas · Simulador de Fluxo Urbano{% endblock %}
 {% block content %}
 <section class="page-heading">
-    <div><p class="eyebrow">Administração</p><h1>Usuários</h1><p class="muted">Gerencie contas, cargos e acesso à plataforma.</p></div>
+    <div><p class="eyebrow">Administração</p><h1>Pessoas cadastradas</h1><p class="muted">Consulte as contas registradas. Esta lista é acessível somente a administradores.</p></div>
     <a class="button" href="{{ url_for('usuarios.novo') }}"><span aria-hidden="true">＋</span> Novo usuário</a>
 </section>
 <section class="panel">

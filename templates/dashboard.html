@@ -24,6 +24,9 @@
         <span class="stat-label">Usuários</span>
         <strong class="stat-value">{{ total_usuarios }}</strong>
         <span class="stat-foot">contas cadastradas</span>
+        {% if current_user.cargo == 'Administrador' %}
+            <a class="text-link stat-link" href="{{ url_for('usuarios.listar') }}">Ver pessoas cadastradas <span aria-hidden="true">→</span></a>
+        {% endif %}
     </article>
     <article class="stat-card">
         <span class="stat-icon stat-icon-orange">⚠</span>
